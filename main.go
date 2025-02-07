@@ -39,8 +39,6 @@ func init() {
 
 	query.SetDefault(db)
 
-	//grpc_tptodb.GrpcTptodbInit()
-
 	err = mqtt.MqttInit()
 	if err != nil {
 		logrus.Fatal(err)
@@ -65,7 +63,7 @@ func init() {
 // @in                          header
 // @name                        x-token
 func main() {
-	// 初始化服务管理器
+	// 初始化服务管理器 (订阅redis过期事件，然后发送对应的MQTT消息)
 	manager := app.NewManager()
 	if err := manager.Start(); err != nil {
 		logrus.Fatalf("Failed to start services: %v", err)

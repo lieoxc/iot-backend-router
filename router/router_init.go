@@ -4,12 +4,9 @@ import (
 	middleware "project/internal/middleware"
 	"project/internal/middleware/response"
 	"project/pkg/global"
-	"project/pkg/metrics"
 	"project/router/apps"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
 	// gin-swagger middleware
@@ -23,17 +20,17 @@ func RouterInit() *gin.Engine {
 	//gin.SetMode(gin.ReleaseMode) //开启生产模式
 	router := gin.Default()
 
-	// 创建 metrics 收集器
-	m := metrics.NewMetrics("ThingsPanel")
-	// 开始定期收集系统指标(每15秒)
-	m.StartMetricsCollection(15 * time.Second)
+	// // 创建 metrics 收集器
+	// m := metrics.NewMetrics("ThingsPanel")
+	// // 开始定期收集系统指标(每15秒)
+	// m.StartMetricsCollection(15 * time.Second)
 	// 注册 metrics 中间件
-	router.Use(middleware.MetricsMiddleware(m))
-	// 注册 prometheus metrics 接口
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	// router.Use(middleware.MetricsMiddleware(m))
+	// // 注册 prometheus metrics 接口
+	// router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// 添加静态文件路由
-	router.StaticFile("/metrics-viewer", "./static/metrics-viewer.html")
+	//router.StaticFile("/metrics-viewer", "./static/metrics-viewer.html")
 
 	// 处理文件访问请求
 	router.GET("/files/*filepath", func(c *gin.Context) {

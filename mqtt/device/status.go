@@ -31,7 +31,7 @@ type StatusConfig struct {
 	MaxRetries    int           // 最大重试次数，0表示无限重试
 }
 
-// InitDeviceStatus 初始化设备状态监控
+// InitDeviceStatus 初始化设备状态监控 （订阅对应的MQTT消息，然后处理设备上下线）
 func InitDeviceStatus() error {
 	uuid := uuid.New()
 	// 配置MQTT连接
