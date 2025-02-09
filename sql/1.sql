@@ -727,7 +727,7 @@ COMMENT ON COLUMN public.telemetry_datas.ts IS '上报时间';
 -- Table Triggers
 
 --24小时分区
-SELECT create_hypertable('telemetry_datas', 'ts',chunk_time_interval => 86400000000);
+-- SELECT create_hypertable('telemetry_datas', 'ts',chunk_time_interval => 86400000000);
 
 -- public.users definition
 

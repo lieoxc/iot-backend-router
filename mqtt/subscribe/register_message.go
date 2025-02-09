@@ -15,7 +15,7 @@ import (
 var WeatherSensorsCfgID = "6aed8d85-684f-af00-c067-9eaa4fa66746"
 
 var AccessWay = "A"
-var TenantID = "5c6212c3"
+var TenantID = "d616bcbb"
 
 type RegisterSubSt struct {
 	CfgID string `json:"cfgID"`
