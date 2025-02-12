@@ -2,17 +2,17 @@ package initialize
 
 import (
 	"fmt"
-	"log"
 
 	global "project/pkg/global"
 
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 func CasbinInit() error {
-	log.Println("casbin启动...")
+	logrus.Println("casbin启动...")
 
 	a, err := gormadapter.NewAdapterByDB(global.DB)
 	if err != nil {
@@ -29,7 +29,7 @@ func CasbinInit() error {
 	}
 
 	global.CasbinEnforcer = e
-	log.Println("casbin启动完成")
+	logrus.Println("casbin启动完成")
 
 	global.OtaAddress = viper.GetString("ota.download_address")
 	return nil

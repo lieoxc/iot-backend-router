@@ -18,8 +18,9 @@ import (
 
 func RouterInit() *gin.Engine {
 	//gin.SetMode(gin.ReleaseMode) //开启生产模式
+	gin.DefaultWriter = logrus.StandardLogger().Out
+	gin.DefaultErrorWriter = logrus.StandardLogger().Out
 	router := gin.Default()
-
 	// // 创建 metrics 收集器
 	// m := metrics.NewMetrics("ThingsPanel")
 	// // 开始定期收集系统指标(每15秒)

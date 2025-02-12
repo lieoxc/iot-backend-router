@@ -1,8 +1,8 @@
 package initialize
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -105,31 +105,68 @@ func LoadDbConfig() (*DbConfig, error) {
 	return config, nil
 }
 
-// Writer 重写gorm日志的Writer
-// type Writer struct{}
+// GormLogger 自定义 GORM 日志器
+type GormLogger struct {
+	LogLevel logger.LogLevel
+}
 
-// func (w Writer) Printf(format string, args ...interface{}) {
-// 	log.Println(args...)
-// }
+// LogMode 设置日志级别
+func (l *GormLogger) LogMode(level logger.LogLevel) logger.Interface {
+	l.LogLevel = level
+	return l
+}
+
+// Info 输出 Info 级别日志
+func (l *GormLogger) Info(ctx context.Context, msg string, data ...interface{}) {
+	if l.LogLevel >= logger.Info {
+		logrus.WithContext(ctx).Infof(msg, data...)
+	}
+}
+
+// Warn 输出 Warn 级别日志
+func (l *GormLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
+	if l.LogLevel >= logger.Warn {
+		logrus.WithContext(ctx).Warnf(msg, data...)
+	}
+}
+
+// Error 输出 Error 级别日志
+func (l *GormLogger) Error(ctx context.Context, msg string, data ...interface{}) {
+	if l.LogLevel >= logger.Error {
+		logrus.WithContext(ctx).Errorf(msg, data...)
+	}
+}
+
+// Trace 输出 Trace 级别日志
+func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	if l.LogLevel <= logger.Silent {
+		return
+	}
+
+	elapsed := time.Since(begin)
+	sql, rows := fc()
+
+	logEntry := logrus.WithContext(ctx).WithFields(logrus.Fields{
+		"elapsed": elapsed,
+		"rows":    rows,
+	})
+
+	switch {
+	case err != nil && l.LogLevel >= logger.Error:
+		logEntry.Errorf("SQL: %s, Error: %v", sql, err)
+	case l.LogLevel >= logger.Info:
+		logEntry.Infof("SQL: %s", sql)
+	}
+}
 
 // PgInit 初始化数据库连接
 func PgConnect(config *DbConfig) (*gorm.DB, error) {
 	dataSource := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable TimeZone=%s",
 		config.Host, config.Port, config.DbName, config.Username, config.Password, config.TimeZone)
 
-	newLogger := logger.New(
-		//Writer{},
-		log.New(os.Stdout, "\r\n", log.LstdFlags), // 使用标准日志库的New方法创建日志输出
-		logger.Config{
-			SlowThreshold:             time.Duration(config.SlowThreshold) * time.Millisecond,
-			LogLevel:                  logger.LogLevel(config.LogLevel),
-			IgnoreRecordNotFoundError: true,
-			Colorful:                  true,
-		})
-
 	var err error
 	db, err := gorm.Open(postgres.Open(dataSource), &gorm.Config{
-		Logger:                 newLogger,
+		Logger:                 &GormLogger{LogLevel: logger.Info},
 		SkipDefaultTransaction: true,
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: false, // use singular table name, table for `User` would be `user` with this option enabled
@@ -148,7 +185,7 @@ func PgConnect(config *DbConfig) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(config.OpenConns)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	log.Println("连接数据库完成...")
+	logrus.Println("连接数据库完成...")
 
 	return db, nil
 }
@@ -202,9 +239,9 @@ func CheckVersion(db *gorm.DB) error {
 		tx.Rollback()
 		return fmt.Errorf("当前数据版本高于程序版本，请升级程序")
 	} else if dataVersionNumber < global.VERSION_NUMBER {
-		log.Println("数据版本：", dataVersionNumber)
-		log.Println("程序版本：", global.VERSION_NUMBER)
-		log.Println("开始升级...")
+		logrus.Println("数据版本：", dataVersionNumber)
+		logrus.Println("程序版本：", global.VERSION_NUMBER)
+		logrus.Println("开始升级...")
 		// sql文件名为：版本编号.sql，执行所大于当前数据版本小于等于程序版本的sql文件
 		for i := dataVersionNumber + 1; i <= global.VERSION_NUMBER; i++ {
 			fileName := fmt.Sprintf("sql/%d.sql", i)
@@ -214,7 +251,7 @@ func CheckVersion(db *gorm.DB) error {
 				tx.Rollback()
 				return fmt.Errorf("sql文件不存在,可能需要手动升级：%s", fileName)
 			}
-			log.Println("执行sql文件：", fileName)
+			logrus.Println("执行sql文件：", fileName)
 			// 读取 SQL 脚本文件
 			sqlFile, err := os.ReadFile(fileName)
 			if err != nil {
@@ -236,7 +273,7 @@ func CheckVersion(db *gorm.DB) error {
 			tx.Rollback()
 			return t.Error
 		}
-		log.Println("升级成功")
+		logrus.Println("升级成功")
 	}
 	return tx.Commit().Error
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"project/internal/dal"
@@ -67,7 +66,7 @@ func checkRedisClient(redisClient *redis.Client) error {
 	if err != nil {
 		return err
 	} else {
-		log.Println("连接redis成完成...")
+		logrus.Debug("连接redis成完成...")
 		return nil
 	}
 }

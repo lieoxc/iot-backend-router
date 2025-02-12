@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -128,7 +127,7 @@ func gracefulShutdown(srv *http.Server) {
 	if err := srv.Shutdown(ctx); err != nil {
 		logrus.Fatal("Server Shutdown:", err)
 	}
-	logrus.Println("Server exiting")
+	logrus.Info("Server exiting")
 }
 
 func successInfo() {
@@ -136,13 +135,13 @@ func successInfo() {
 	startTime := time.Now().Format("2006-01-02 15:04:05")
 
 	// 打印启动成功消息
-	fmt.Println("----------------------------------------")
-	fmt.Println("        TingsPanel 启动成功!")
-	fmt.Println("----------------------------------------")
-	fmt.Printf("启动时间: %s\n", startTime)
-	fmt.Println("版本: v1.1.4社区版")
-	fmt.Println("----------------------------------------")
-	fmt.Println("欢迎使用 TingsPanel！")
-	fmt.Println("如需帮助，请访问: http://thingspanel.io")
-	fmt.Println("----------------------------------------")
+	logrus.Debug("----------------------------------------")
+	logrus.Debug("        TingsPanel 启动成功!")
+	logrus.Debug("----------------------------------------")
+	logrus.Debugf("启动时间: %s\n", startTime)
+	logrus.Debug("版本: v1.1.4社区版")
+	logrus.Debug("----------------------------------------")
+	logrus.Debug("欢迎使用 TingsPanel！")
+	logrus.Debug("如需帮助，请访问: http://thingspanel.io")
+	logrus.Debug("----------------------------------------")
 }
