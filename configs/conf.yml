@@ -108,7 +108,7 @@ mqtt:
     qos: 1
   events:
     # 订阅事件：+位置是message_id
-    subscribe_topic: devices/event/+
+    subscribe_topic: devices/event/+/+
     # 发布事件响应：devices/event/response/{device_number}/{message_id}
     publish_topic: devices/event/response/
 

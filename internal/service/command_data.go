@@ -68,7 +68,7 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 
 	// 生成消息ID和主题
 	messageID := common.GetMessageID()
-	topic := fmt.Sprintf("%s%s/%s", config.MqttConfig.Commands.PublishTopic, deviceInfo.DeviceNumber, messageID)
+	topic := fmt.Sprintf("%s%s/%s/%s", config.MqttConfig.Commands.PublishTopic, *deviceInfo.DeviceConfigID, deviceInfo.DeviceNumber, messageID)
 
 	// 处理非MQTT协议
 	if deviceConfig != nil && protocolType != "MQTT" {
