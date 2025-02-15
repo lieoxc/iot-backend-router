@@ -1,6 +1,7 @@
 package router
 
 import (
+	"net/http"
 	middleware "project/internal/middleware"
 	"project/internal/middleware/response"
 	"project/pkg/global"
@@ -21,17 +22,16 @@ func RouterInit() *gin.Engine {
 	gin.DefaultWriter = logrus.StandardLogger().Out
 	gin.DefaultErrorWriter = logrus.StandardLogger().Out
 	router := gin.Default()
-	// // 创建 metrics 收集器
-	// m := metrics.NewMetrics("ThingsPanel")
-	// // 开始定期收集系统指标(每15秒)
-	// m.StartMetricsCollection(15 * time.Second)
-	// 注册 metrics 中间件
-	// router.Use(middleware.MetricsMiddleware(m))
-	// // 注册 prometheus metrics 接口
-	// router.GET("/metrics", gin.WrapH(promhttp.Handler()))
-
-	// 添加静态文件路由
-	//router.StaticFile("/metrics-viewer", "./static/metrics-viewer.html")
+	// 提供 Vue 编译后的静态文件
+	router.Static("/assets", "./dist/assets") // 将 static 目录中的文件暴露为静态资源
+	router.LoadHTMLFiles("./dist/index.html")
+	router.StaticFile("/favicon.ico", "./dist/favicon.ico")             // ico
+	router.StaticFile("/EasyWasmPlayer.js", "./dist/EasyWasmPlayer.js") // ico
+	router.StaticFile("/libDecoder.wasm ", "./dist/libDecoder.wasm")    // ico
+	// 默认路由：返回 index.html
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", nil) // 返回编译后的 index.html
+	})
 
 	// 处理文件访问请求
 	router.GET("/files/*filepath", func(c *gin.Context) {

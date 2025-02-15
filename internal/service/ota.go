@@ -40,7 +40,7 @@ func (*OTA) CreateOTAUpgradePackage(req *model.CreateOTAUpgradePackageReq, tenan
 	if len(parts) > 1 {
 		result := parts[1]
 		filepath = "./" + result
-		fmt.Println("filepath:", filepath)
+		logrus.Debug("filepath:", filepath)
 	}
 	signature, err := utils.FileSign(filepath, *req.SignatureType)
 	if err != nil {

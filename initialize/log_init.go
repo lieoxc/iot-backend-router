@@ -73,7 +73,7 @@ func LogInIt() {
 		logrus.SetLevel(logrus.InfoLevel) // 设置默认级别
 	}
 	// 设置日志输出到文件
-	currentTime := time.Now().Format("200601021504") // 格式化为年月日时分
+	currentTime := time.Now().Format("2006-01-02-1504") // 格式化为年月日时分
 	logPath := filepath.Join("logs", currentTime+".log")
 	logrus.SetOutput(&lumberjack.Logger{
 		Filename:   logPath, // 日志文件路径
