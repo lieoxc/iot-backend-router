@@ -36,9 +36,11 @@ func (*OTA) CreateOTAUpgradePackage(req *model.CreateOTAUpgradePackageReq, tenan
 	fileurl := *req.PackageUrl
 	// 以 "download" 为分隔符，提取后面的内容
 	var filepath string
-	parts := strings.SplitN(fileurl, "download\\", 2)
+	parts := strings.SplitN(fileurl, "download", 2)
+
 	if len(parts) > 1 {
 		result := parts[1]
+		logrus.Debug("result filepath:", result)
 		filepath = "./" + result
 		logrus.Debug("filepath:", filepath)
 	}
