@@ -6,6 +6,7 @@ import (
 	"project/internal/middleware/response"
 	"project/pkg/global"
 	"project/router/apps"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -32,7 +33,15 @@ func RouterInit() *gin.Engine {
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil) // 返回编译后的 index.html
 	})
-
+	router.NoRoute(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/static/") {
+			// 如果是静态资源，直接返回 404
+			c.Status(http.StatusNotFound)
+			return
+		}
+		// 否则返回 index.html，由前端路由处理
+		c.File("./dist/index.html")
+	})
 	// 处理文件访问请求
 	router.GET("/files/*filepath", func(c *gin.Context) {
 		filepath := c.Param("filepath")
