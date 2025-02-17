@@ -149,7 +149,7 @@ func PublishAttributeResponseMessage(deviceNumber string, messageId string, err 
 // 接收NTP请求的响应
 func PublishNtpResponseMessage(cfgID string, devID string, err error) error {
 	qos := byte(config.MqttConfig.Attributes.QoS)
-	topic := fmt.Sprintf("%s/%s/%s", config.MqttConfig.Register.PublishTopic, cfgID, devID)
+	topic := fmt.Sprintf("%s%s/%s", config.MqttConfig.Customer.PublishTopic, cfgID, devID)
 	type NtpResponSt struct {
 		Longitude  float32 `json:"Longitude"`
 		Latitude   float32 `json:"Latitude"`
@@ -169,6 +169,8 @@ func PublishNtpResponseMessage(cfgID string, devID string, err error) error {
 	payload, _ := json.Marshal(ntpData)
 	//payload := common.GetResponsePayload("", err)
 	// 发布消息
+	logrus.Debugf("topic:%s", topic)
+	logrus.Debugf("payload:%s", string(payload))
 	token := mqttClient.Publish(topic, qos, false, payload)
 	if token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())

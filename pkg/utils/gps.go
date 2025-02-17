@@ -36,8 +36,6 @@ func enableGPS(portName string) error {
 	if err != nil {
 		return fmt.Errorf("发送开启 GPS 指令失败: %v", err)
 	}
-
-	fmt.Println("成功发送开启 GPS 的指令")
 	return nil
 }
 
@@ -70,9 +68,9 @@ func readGPSData(portName string) (GPSData, error) {
 					continue
 				}
 				data.LocalTimeStr = data.LocalTime.Format("2006-01-02 15:04:05")
-				fmt.Printf("UTC时间: %s\n", data.LocalTimeStr)
-				fmt.Printf("纬度: %.6f°\n", data.Latitude)
-				fmt.Printf("经度: %.6f°\n", data.Longitude)
+				logrus.Debugf("UTC时间: %s", data.LocalTimeStr)
+				logrus.Debugf("纬度: %.6f°", data.Latitude)
+				logrus.Debugf("经度: %.6f°", data.Longitude)
 				break
 			}
 		}
@@ -139,21 +137,19 @@ func parseGPRMC(sentence string) (GPSData, error) {
 		Longitude: longitude,
 	}, nil
 }
-func GetNtpInfo() (GPSData, error) {
-	// 配置串口名称（注意替换为实际串口）
+func GPSInit() error {
 	controlPort := "/dev/ttyUSB2" // 用于发送 AT 指令的串口
-	gpsPort := "/dev/ttyUSB1"     // 用于接收 GPS 数据的串口
-
-	// 开启 GPS
-	logrus.Debug("正在开启 GPS 功能...")
+	logrus.Debugln("Start GPS Init.")
 	if err := enableGPS(controlPort); err != nil {
 		logrus.Errorln("开启 GPS 功能失败: %v", err)
-		return GPSData{}, nil
+		return err
 	}
-
-	// 等待一段时间确保 GPS 开启
-	time.Sleep(1 * time.Second)
-
+	logrus.Debugln("Finsh GPS Init.")
+	return nil
+}
+func GetNtpInfo() (GPSData, error) {
+	// 配置串口名称（注意替换为实际串口）
+	gpsPort := "/dev/ttyUSB1" // 用于接收 GPS 数据的串口
 	// 开始读取 GPS 数据
 	data, err := readGPSData(gpsPort)
 	if err != nil {

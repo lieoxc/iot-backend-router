@@ -14,6 +14,7 @@ import (
 	"project/mqtt/device"
 	"project/mqtt/publish"
 	"project/mqtt/subscribe"
+	"project/pkg/utils"
 	"time"
 
 	router "project/router"
@@ -48,6 +49,8 @@ func init() {
 		logrus.Fatal(err)
 	}
 	publish.PublishInit()
+
+	utils.GPSInit()
 	//定时任务
 	//croninit.CronInit()
 }
