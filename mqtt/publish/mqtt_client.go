@@ -106,10 +106,12 @@ func PublishTelemetryMessage(topic string, device *model.Device, param *model.Pu
 }
 
 // 发送ota版本包消息给直连设备
-func PublishOtaAdress(deviceNumber string, payload []byte) error {
-	topic := config.MqttConfig.OTA.PublishTopic + deviceNumber
+func PublishOtaAdress(cfgID, deviceNumber string, payload []byte) error {
+	topic := config.MqttConfig.OTA.PublishTopic + cfgID + "/" + deviceNumber
 	qos := byte(config.MqttConfig.OTA.QoS)
 	// 发布消息
+	logrus.Debug("PublishOta topic:", topic)
+	logrus.Debug("PublishOta payload:", string(payload))
 	token := mqttClient.Publish(topic, qos, false, payload)
 	if token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())

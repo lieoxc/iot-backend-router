@@ -121,7 +121,7 @@ mqtt:
   ota:
     # ota升级包消息推送：ota/devices/infrom/{device_number}
     publish_topic: ota/devices/infrom/
-    subscribe_topic: ota/devices/progress
+    subscribe_topic: ota/devices/progress/+/+
     qos: 1
 mqtts:
   broker: 192.168.10.1:8883

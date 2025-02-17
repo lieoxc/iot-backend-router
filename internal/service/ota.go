@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -227,6 +228,20 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 	if err != nil {
 		return err
 	}
+	deviceOnlines := []model.DeviceOnline{{
+		DeviceConfigId: device.DeviceConfigID,
+		DeviceId:       device.ID,
+	},
+	}
+
+	result, err := dal.GetDeviceOnline(context.Background(), deviceOnlines)
+	if err != nil {
+		return err
+	}
+
+	if isOnline, ok := result[device.ID]; ok {
+		device.IsOnline = int16(isOnline)
+	}
 	if device.IsOnline != 1 {
 		//修改设备升级任务信息
 		taskDetail.Status = 5
@@ -241,7 +256,8 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 		return fmt.Errorf("the device is offline")
 	}
 	// 查看设备是否有其他升级中的任务
-	count, err := query.OtaUpgradeTaskDetail.Where(query.OtaUpgradeTaskDetail.DeviceID.Eq(taskDetail.DeviceID), query.OtaUpgradeTaskDetail.Status.Lt(4)).Count()
+	count, err := query.OtaUpgradeTaskDetail.Where(query.OtaUpgradeTaskDetail.ID.Neq(taskDetail.ID),
+		query.OtaUpgradeTaskDetail.DeviceID.Eq(taskDetail.DeviceID), query.OtaUpgradeTaskDetail.Status.Lt(4)).Count()
 	if err != nil {
 		return err
 	}
@@ -259,12 +275,12 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 		return fmt.Errorf("the device is upgrading")
 	}
 	// 推送升级包
-	taskQuery, err := query.OtaUpgradeTask.Select(query.OtaUpgradeTask.ID).Where(query.OtaUpgradeTask.ID.Eq(taskDetail.OtaUpgradeTaskID)).First()
+	taskQuery, err := query.OtaUpgradeTask.Select(query.OtaUpgradeTask.OtaUpgradePackageID).Where(query.OtaUpgradeTask.ID.Eq(taskDetail.OtaUpgradeTaskID)).First()
 	if err != nil {
 		return err
 	}
-	otataskid := taskQuery.ID
-	otapackage, err := query.OtaUpgradePackage.Where(query.OtaUpgradePackage.ID.Eq(otataskid)).First()
+	packageId := taskQuery.OtaUpgradePackageID
+	otapackage, err := query.OtaUpgradePackage.Where(query.OtaUpgradePackage.ID.Eq(packageId)).First()
 	if err != nil {
 		return err
 	}
@@ -278,11 +294,10 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 	otamsg["code"] = "200"
 	var otamsgparams = make(map[string]interface{})
 	otamsgparams["version"] = otapackage.Version
-	otamsgparams["size"] = "0"
 	otamsgparams["url"] = global.OtaAddress + strings.TrimPrefix(*otapackage.PackageURL, ".")
 	otamsgparams["signMethod"] = otapackage.SignatureType
-	otamsgparams["sign"] = ""
-	otamsgparams["module"] = otapackage.Module
+	otamsgparams["sign"] = otapackage.Signature
+	//otamsgparams["module"] = otapackage.Module
 	//其他配置格式成map
 	var m map[string]interface{}
 	err = json.Unmarshal([]byte(*otapackage.AdditionalInfo), &m)
@@ -306,7 +321,7 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 		if err != nil {
 			return err
 		}
-		go publish.PublishOtaAdress(device.DeviceNumber, palyload)
+		go publish.PublishOtaAdress(*device.DeviceConfigID, device.DeviceNumber, palyload)
 	}
 
 	return nil
