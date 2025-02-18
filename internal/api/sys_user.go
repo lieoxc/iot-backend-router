@@ -253,19 +253,3 @@ func (*UserApi) TransformUser(c *gin.Context) {
 
 	c.Set("data", loginRsp)
 }
-
-// EmailRegister /api/v1/tenant/email/register POST
-// @description 租户邮箱注册
-func (*UserApi) EmailRegister(c *gin.Context) {
-	var req model.EmailRegisterReq
-	if !BindAndValidate(c, &req) {
-		return
-	}
-	loginRsp, err := service.GroupApp.EmailRegister(c, &req)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	c.Set("data", loginRsp)
-}

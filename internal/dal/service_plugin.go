@@ -216,22 +216,6 @@ func GetServicePluginSubTopicPrefixByDeviceConfigID(deviceConfigID string) (stri
 	return subTopicPrefix, nil
 }
 
-// 更新服务插件的心跳时间
-func UpdateServicePluginHeartbeat(serviceIdentifier string) error {
-	q := query.ServicePlugin
-	queryBuilder := q.WithContext(context.Background())
-	// last_active_time UTC时间
-	t := time.Now().UTC()
-	info, err := queryBuilder.Where(q.ServiceIdentifier.Eq(serviceIdentifier)).Update(q.LastActiveTime, t)
-	if err != nil {
-		logrus.Error(err)
-	}
-	if info.RowsAffected == 0 {
-		return errors.New("service plugin not found")
-	}
-	return err
-}
-
 // GetServiceSelectList
 func GetServiceSelectList() ([]model.ServicePlugin, error) {
 	q := query.ServicePlugin

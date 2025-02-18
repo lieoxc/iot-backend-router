@@ -94,18 +94,6 @@ func (*ServicePlugin) Delete(id string) error {
 	return nil
 }
 
-// Heartbeat
-func (*ServicePlugin) Heartbeat(req *model.HeartbeatReq) error {
-	// 更新服务插件的心跳时间
-	err := dal.UpdateServicePluginHeartbeat(req.ServiceIdentifier)
-	if err != nil {
-		return errcode.WithData(errcode.CodeDBError, map[string]interface{}{
-			"sql_error": err.Error(),
-		})
-	}
-	return nil
-}
-
 // GetServiceSelect
 func (*ServicePlugin) GetServiceSelect(req *model.GetServiceSelectReq) (interface{}, error) {
 	// 返回数据map
