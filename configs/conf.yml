@@ -14,11 +14,12 @@ log:
   level: debug # 默认info
   # 每个文件保存的最大行数
   maxlines: 10000
-  path: 
+  path:
 jwt:
   key: 1hj5b0sp9
 
-
+fileStorage:
+  path: 
 
 db:
   psql:

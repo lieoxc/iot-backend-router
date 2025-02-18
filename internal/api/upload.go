@@ -16,6 +16,7 @@ import (
 	"project/pkg/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 type UpLoadApi struct{}
@@ -103,8 +104,12 @@ func generateFilePath(fileType, filename string) (string, string, error) {
 	// 2. 生成日期目录
 	dateDir := time.Now().Format("2006-01-02")
 
+	apiFileHeadPath := viper.GetString("fileStorage.path")
+	if apiFileHeadPath == "" { // 不配置的时候使用本地目录
+		apiFileHeadPath = BaseUploadDir
+	}
 	// 3. 使用 filepath.Clean 清理并验证路径
-	uploadDir := filepath.Clean(filepath.Join(BaseUploadDir, fileType, dateDir))
+	uploadDir := filepath.Clean(filepath.Join(apiFileHeadPath, fileType, dateDir))
 	absUploadDir, err := filepath.Abs(uploadDir)
 	if err != nil {
 		return "", "", errcode.WithVars(errcode.CodeFilePathGenError, map[string]interface{}{
@@ -112,7 +117,7 @@ func generateFilePath(fileType, filename string) (string, string, error) {
 		})
 	}
 
-	absBaseDir, err := filepath.Abs(BaseUploadDir)
+	absBaseDir, err := filepath.Abs(apiFileHeadPath)
 	if err != nil {
 		return "", "", errcode.WithVars(errcode.CodeFilePathGenError, map[string]interface{}{
 			"error": "invalid base path",
