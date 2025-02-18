@@ -5,6 +5,7 @@ import (
 	initialize "project/initialize"
 	"project/internal/query"
 	"strconv"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -18,7 +19,7 @@ type DeviceProgressMsg struct {
 }
 
 // 接收OTA升级进度消息
-func OtaUpgrade(payload []byte, _ string) {
+func OtaUpgrade(payload []byte, topic string) {
 	/*
 		消息规范：topic:ota/devices/progress
 				 payload是json格式的消息
@@ -27,23 +28,20 @@ func OtaUpgrade(payload []byte, _ string) {
 	*/
 	// 验证消息有效性
 	// TODO处理消息
+	datas := strings.Split(string(topic), "/")
+	logrus.Debugln(datas[2], " mac:", datas[3])
 	logrus.Debug("ota progress message:", string(payload))
 	// 验证消息有效性
-	progressMsgPayload, err := verifyPayload(payload)
-	if err != nil {
-		logrus.Error(err.Error())
-		return
-	}
 
 	// 处理消息
-	device, err := initialize.GetDeviceCacheById(progressMsgPayload.DeviceId)
+	device, err := initialize.GetDeviceCacheById(datas[3])
 	if err != nil {
 		logrus.Error(err.Error())
 		return
 	}
 
 	var progressMsg DeviceProgressMsg
-	err = json.Unmarshal(progressMsgPayload.Values, &progressMsg)
+	err = json.Unmarshal(payload, &progressMsg)
 	if err != nil {
 		logrus.Error(err.Error())
 		return

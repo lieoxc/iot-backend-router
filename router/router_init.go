@@ -18,7 +18,7 @@ import (
 
 // swagger embed files
 
-func RouterInit() *gin.Engine {
+func RouterInit(cfgPath string) *gin.Engine {
 	//gin.SetMode(gin.ReleaseMode) //开启生产模式
 	gin.DefaultWriter = logrus.StandardLogger().Out
 	gin.DefaultErrorWriter = logrus.StandardLogger().Out
@@ -52,7 +52,7 @@ func RouterInit() *gin.Engine {
 
 	router.Use(middleware.Cors())
 	// 初始化响应处理器
-	handler, err := response.NewHandler("configs/messages.yaml")
+	handler, err := response.NewHandler(cfgPath + "/messages.yaml")
 	if err != nil {
 		logrus.Fatalf("初始化响应处理器失败: %v", err)
 	}

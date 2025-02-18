@@ -13,7 +13,8 @@ import (
 
 var RSAPrivateKey *rsa.PrivateKey
 
-func RsaDecryptInit(filePath string) (err error) {
+func RsaDecryptInit(path string) (err error) {
+	filePath := path + "/rsa_key/private_key.pem"
 	key, err := os.ReadFile(filePath)
 	if err != nil {
 		return errors.New("加载私钥错误1：" + err.Error())

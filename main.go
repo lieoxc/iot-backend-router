@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"net"
 	"net/http"
 	"os"
@@ -23,12 +24,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+// 1. 定义命令行参数
+var ConfigPath string
+
 func init() {
-	initialize.ViperInit("./configs/conf.yml")
-	//initialize.ViperInit("./configs/conf-localdev.yml")
-	initialize.RsaDecryptInit("./configs/rsa_key/private_key.pem")
+
+	flag.StringVar(&ConfigPath, "config", "./configs", "Path to configs")
+	flag.Parse()
+
+	initialize.ViperInit(ConfigPath)
+	initialize.RsaDecryptInit(ConfigPath)
 	initialize.LogInIt()
-	db, err := initialize.PgInit()
+	db, err := initialize.PgInit(ConfigPath)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -75,7 +82,7 @@ func main() {
 
 	// TODO: 替换gin默认日志，默认日志不支持日志级别设置
 	host, port := loadConfig()
-	router := router.RouterInit()
+	router := router.RouterInit(ConfigPath)
 	srv := initServer(host, port, router)
 
 	// 启动服务

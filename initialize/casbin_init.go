@@ -11,15 +11,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-func CasbinInit() error {
+func CasbinInit(cfgPath string) error {
 	logrus.Println("casbin启动...")
 
 	a, err := gormadapter.NewAdapterByDB(global.DB)
 	if err != nil {
 		return fmt.Errorf("failed to initialize GORM adapter: %v", err)
 	}
-
-	e, err := casbin.NewEnforcer("./configs/casbin.conf", a)
+	path := cfgPath + "/casbin.conf"
+	e, err := casbin.NewEnforcer(path, a)
 	if err != nil {
 		return fmt.Errorf("failed to create enforcer: %v", err)
 	}

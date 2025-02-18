@@ -9,12 +9,13 @@ import (
 )
 
 func ViperInit(path string) {
+	cfgPath := path + "/conf.yml"
 	viper.SetEnvPrefix("GOTP")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	if path != "" {
-		viper.SetConfigFile(path)
+	if cfgPath != "" {
+		viper.SetConfigFile(cfgPath)
 	} else {
 		viper.SetConfigName("./configs/conf")
 	}

@@ -31,7 +31,7 @@ type DbConfig struct {
 	OpenConns     int
 }
 
-func PgInit() (*gorm.DB, error) {
+func PgInit(cfgPath string) (*gorm.DB, error) {
 	// 初始化配置
 	config, err := LoadDbConfig()
 	if err != nil {
@@ -48,7 +48,7 @@ func PgInit() (*gorm.DB, error) {
 	global.DB = db
 
 	// casbin 初始化
-	CasbinInit()
+	CasbinInit(cfgPath)
 
 	// 检查版本
 	err = CheckVersion(db)
