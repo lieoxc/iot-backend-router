@@ -10,18 +10,14 @@ import (
 	"project/initialize"
 	config "project/mqtt"
 	"project/mqtt/publish"
-	simulationpublish "project/mqtt/simulation_publish"
 	"project/pkg/constant"
 	"project/pkg/errcode"
-	"project/pkg/utils"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-basic/uuid"
 	"github.com/mintance/go-uniqid"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/xuri/excelize/v2"
 
 	dal "project/internal/dal"
@@ -498,107 +494,6 @@ func (*TelemetryData) GetTelemetrHistoryDataByPageV2(req *model.GetTelemetryHist
 	dataRsp["total"] = total
 	dataRsp["list"] = easyData
 	return dataRsp, nil
-}
-
-// 获取模拟设备发送遥测数据的回显数据
-func (*TelemetryData) ServeEchoData(req *model.ServeEchoDataReq) (interface{}, error) {
-	// 获取设备信息
-	deviceInfo, err := dal.GetDeviceByID(req.DeviceId)
-	if err != nil {
-		return nil, errcode.WithData(errcode.CodeDBError, map[string]interface{}{
-			"sql_error": err.Error(),
-		})
-	}
-	voucher := deviceInfo.Voucher
-	// 校验voucher是否json
-	if !IsJSON(voucher) {
-		return nil, errcode.NewWithMessage(errcode.CodeParamError, "voucher is not json")
-	}
-	var voucherMap map[string]interface{}
-	err = json.Unmarshal([]byte(voucher), &voucherMap)
-	if err != nil {
-		return nil, err
-	}
-	// 判断是否有username字段
-	var username, password, host, post, payload, clientID string
-	if _, ok := voucherMap["username"]; !ok {
-		return nil, errcode.NewWithMessage(errcode.CodeParamError, "username is not exist")
-	}
-	username = voucherMap["username"].(string)
-	// 判断是否有password字段
-	if _, ok := voucherMap["password"]; !ok {
-		password = ""
-	} else {
-		password = voucherMap["password"].(string)
-	}
-
-	accessAddress := viper.GetString("mqtt.access_address")
-	if accessAddress == "" {
-		return nil, errcode.NewWithMessage(errcode.CodeParamError, "mqtt access address is not exist")
-	}
-	accessAddressList := strings.Split(accessAddress, ":")
-	host = accessAddressList[0]
-	post = accessAddressList[1]
-	topic := config.MqttConfig.Telemetry.SubscribeTopic
-	clientID = "mqtt_" + uuid.New()[0:12] //代表随机生成
-	payload = `{\"test_data1\":25.5,\"test_data2\":60}`
-	// 拼接命令
-	command := utils.BuildMosquittoPubCommand(host, post, username, password, topic, payload, clientID)
-	return command, nil
-
-}
-
-// 模拟设备发送遥测数据
-func (*TelemetryData) TelemetryPub(mosquittoCommand string) (interface{}, error) {
-	// 解析mosquitto_pub命令
-	params, err := utils.ParseMosquittoPubCommand(mosquittoCommand)
-	if err != nil {
-		return nil, errcode.WithData(errcode.CodeParamError, map[string]interface{}{
-			"error": err.Error(),
-		})
-	}
-	// 根据凭证信息查询设备信息
-	// 组装凭证信息
-	var voucher string
-	if params.Password == "" {
-		voucher = fmt.Sprintf("{\"username\":\"%s\"}", params.Username)
-	} else {
-		voucher = fmt.Sprintf("{\"username\":\"%s\",\"password\":\"%s\"}", params.Username, params.Password)
-	}
-	// 查询设备信息
-	deviceInfo, err := dal.GetDeviceByVoucher(voucher)
-	if err != nil {
-		return nil, errcode.WithData(errcode.CodeDBError, map[string]interface{}{
-			"sql_error": err.Error(),
-		})
-	}
-	var isOnline int
-	if deviceInfo.IsOnline == int16(1) {
-		isOnline = 1
-	}
-
-	// 发送mqtt消息
-	logrus.Debug("params:", params)
-	err = simulationpublish.PublishMessage(params.Host, params.Port, params.Topic, params.Payload, params.Username, params.Password, params.ClientId)
-	if err != nil {
-		return nil, errcode.WithData(errcode.CodeSystemError, map[string]interface{}{
-			"error": err.Error(),
-		})
-	}
-	go func() {
-		time.Sleep(3 * time.Second)
-		// 更新设备状态
-		if isOnline == 1 {
-			dal.UpdateDeviceOnlineStatus(deviceInfo.ID, int16(isOnline))
-			// 发送上线消息
-			// 发送mqtt消息
-			err = publish.PublishOnlineMessage(deviceInfo.ID, []byte("1"))
-			if err != nil {
-				logrus.Error("publish online message failed:", err)
-			}
-		}
-	}()
-	return nil, nil
 }
 
 func (*TelemetryData) GetTelemetrSetLogsDataListByPage(req *model.GetTelemetrySetLogsListByPageReq) (interface{}, error) {

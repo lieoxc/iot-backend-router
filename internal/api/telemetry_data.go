@@ -157,38 +157,6 @@ func (*TelemetryDataApi) ServeSetLogsDataListByPage(c *gin.Context) {
 	c.Set("data", date)
 }
 
-// 获取模拟设备发送遥测数据的回显数据
-// /api/v1/telemetry/datas/simulation [get]
-func (*TelemetryDataApi) ServeEchoData(c *gin.Context) {
-	var req model.ServeEchoDataReq
-	if !BindAndValidate(c, &req) {
-		return
-	}
-
-	date, err := service.GroupApp.TelemetryData.ServeEchoData(&req)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	c.Set("data", date)
-}
-
-// 模拟设备发送遥测数据
-// /api/v1/telemetry/datas/simulation [post]
-func (*TelemetryDataApi) SimulationTelemetryData(c *gin.Context) {
-	var req model.SimulationTelemetryDataReq
-	if !BindAndValidate(c, &req) {
-		return
-	}
-	_, err := service.GroupApp.TelemetryData.TelemetryPub(req.Command)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	c.Set("data", nil)
-}
-
 // ServeCurrentDataByWS 通过WebSocket处理设备实时遥测数据
 // @Router   /api/v1/telemetry/datas/current/ws [get]
 func (*TelemetryDataApi) ServeCurrentDataByWS(c *gin.Context) {
