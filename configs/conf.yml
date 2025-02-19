@@ -24,7 +24,6 @@ fileStorage:
 db:
   psql:
     host: 192.168.10.1 # 默认localhost
-#    host: 47.92.253.145 # 默认localhost
     port: 5432 # 默认5432
     dbname: thingspanel
     username: postgres
@@ -44,8 +43,6 @@ db:
     db: 1 # 默认0
     db1: 10 # 默认10，不能是0，用户设备状态管理
     password:
-# mqtt服务：gmqtt、vernemq
-mqtt_server: vernemq
 
 mqtt:
   access_address: 192.168.10.1:1883
@@ -124,13 +121,6 @@ mqtt:
     publish_topic: ota/devices/infrom/
     subscribe_topic: ota/devices/progress/+/+
     qos: 1
-mqtts:
-  broker: 192.168.10.1:8883
-  user: root
-  pass: root
-  caPath : ./conf/certificate/ca.crt
-  crtPath: ./conf/certificate/client.crt
-  keyPath : ./conf/certificate/client.key
 
 automation_task_confg:
   once_task_limit: 100
