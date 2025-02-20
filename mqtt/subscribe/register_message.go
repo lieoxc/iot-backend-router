@@ -11,9 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//var Esp32CfgID = "438ec12d-bc4a-3308-c5e2-05096bcd3d6f"
-var WeatherSensorsCfgID = "6aed8d85-684f-af00-c067-9eaa4fa66746"
-
 var AccessWay = "A"
 var TenantID = "d616bcbb"
 

@@ -312,7 +312,7 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 	} else {
 		// 修改设备升级任务信息
 		//修改设备升级任务信息
-		taskDetail.Status = 1
+		taskDetail.Status = 2
 		desc := "已通知设备"
 		taskDetail.StatusDescription = &desc
 		t := time.Now().UTC()
