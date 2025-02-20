@@ -196,7 +196,10 @@ INSERT INTO "sys_ui_elements" ("id", "parent_id", "element_code", "element_type"
 	('18892c6e-ca04-f2b5-c243-f2c7230b3f33', '990af72f-06ce-5f23-3af6-1694bd479c96', 'manage_user', 3, 1, '/manage/user', '', '0', '["TENANT_ADMIN","SYS_ADMIN"]', 'user', '2024-09-04 02:05:06.377+00', '', 'default', ''),
 	('95e2a961-382b-f4a6-87b3-1898123c95bc', '0', 'visualization', 1, 113, '/visualization', 'icon-park-outline:data-server', 'self', '["SYS_ADMIN"]', '可视化', '2024-03-07 13:37:16.042+00', '', 'route.visualization', 'layout.base'),
 	('f960c45c-6d5b-e67a-c4ff-1f0e869c1625', '5373a6a2-1861-af35-eb4c-adfd5ca55ecd', 'device_service-details', 3, 1130, '/device/service-details', 'ph:align-bottom', '1', '["SYS_ADMIN"]', '服务详情', '2024-07-01 15:16:56.668+00', '', 'route.device_service_details', ''),
-	('075d9f19-5618-bb9b-6ccd-f382bfd3292b', '5373a6a2-1861-af35-eb4c-adfd5ca55ecd', 'device_service-access', 3, 1129, '/device/service-access', 'mdi:ab-testing', '0', '["SYS_ADMIN"]', '服务接入点管理', '2024-07-01 13:52:09.402+00', '', 'route.device_service_access', '');
+	('075d9f19-5618-bb9b-6ccd-f382bfd3292b', '5373a6a2-1861-af35-eb4c-adfd5ca55ecd', 'device_service-access', 3, 1129, '/device/service-access', 'mdi:ab-testing', '0', '["SYS_ADMIN"]', '服务接入点管理', '2024-07-01 13:52:09.402+00', '', 'route.device_service_access', ''),
+	('9349380e-da14-1c93-bac1-d2faf9b01a8d', 'e1ebd134-53df-3105-35f4-489fc674d173', 'management_ota', 3, 2, '/management/ota', 'simple-icons:apacheecharts', '0', '["SYS_ADMIN","TENANT_ADMIN"]', 'OTA升级', '2025-02-14 20:57:50.053555+08', '', 'route.management_ota', ''),
+	('ee46a6fa-6778-b16b-477e-b38741697893', 'e1ebd134-53df-3105-35f4-489fc674d173', 'management_package', 3, 1, '/management/package', 'ic:baseline-credit-card', '0', '["SYS_ADMIN","TENANT_ADMIN"]', '升级包管理', '2025-02-14 20:57:10.493488+08', '', 'route.management_package', '');
+;
 
 
 -- 修改默认密码
