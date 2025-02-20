@@ -20,6 +20,7 @@ var TenantID = "d616bcbb"
 type RegisterSubSt struct {
 	CfgID string `json:"cfgID"`
 	Mac   string `json:"mac"`
+	Name  string `json:"name,omitempty"`
 }
 
 func RegisterMessages(payload []byte, topic string) {
@@ -39,7 +40,12 @@ func RegisterMessages(payload []byte, topic string) {
 	}
 	var createDevReq model.CreateDeviceReq
 	createDevReq.AccessWay = &AccessWay
-	createDevReq.Name = &regMsg.Mac
+	if regMsg.Name != "" {
+		createDevReq.Name = &regMsg.Name
+	} else {
+		createDevReq.Name = &regMsg.Mac
+	}
+
 	createDevReq.DeviceConfigId = &regMsg.CfgID
 	createDevReq.DeviceNumber = &regMsg.Mac
 	createDevReq.Label = &regMsg.Mac
