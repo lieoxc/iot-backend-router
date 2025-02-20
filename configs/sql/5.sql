@@ -147,7 +147,9 @@ INSERT INTO "device_model_telemetry" ("id", "device_template_id", "data_name", "
 	('51419432-f0e4-ef43-40b0-ad3e8442be33', 'd391b336-4273-d101-27f8-d1fbedfde866', '风速', 'wind_speed', 'R-只读', 'Number', 'm/s', '', '[]', '2025-02-09 03:23:38.771712+00', '2025-02-09 03:23:38.771712+00', NULL, 'd616bcbb'),
 	('3df3a65a-7847-6165-fc71-dd0fc3c9b9a5', 'd391b336-4273-d101-27f8-d1fbedfde866', '风向', 'wind_direction', 'R-只读', 'Number', '度', '实际值（正北方向为0°顺时针增加度数，正东方为90°）', '[]', '2025-02-09 03:25:06.6538+00', '2025-02-09 03:25:15.28915+00', NULL, 'd616bcbb'),
 	('a0a3407a-2ba0-1734-be98-359896aa7614', 'd391b336-4273-d101-27f8-d1fbedfde866', '温度', 'temperature', 'R-只读', 'Number', '摄氏度', '', '[]', '2025-02-09 03:26:25.250051+00', '2025-02-09 11:32:04.599574+00', NULL, 'd616bcbb'),
-	('dec20597-f044-6ee5-a250-cfaa0bf94bc8', 'd391b336-4273-d101-27f8-d1fbedfde866', '湿度', 'humidity', 'R-只读', 'Number', '%', '', '[]', '2025-02-09 03:25:53.742736+00', '2025-02-09 11:31:46.882417+00', NULL, 'd616bcbb');
+	('dec20597-f044-6ee5-a250-cfaa0bf94bc8', 'd391b336-4273-d101-27f8-d1fbedfde866', '湿度', 'humidity', 'R-只读', 'Number', '%', '', '[]', '2025-02-09 03:25:53.742736+00', '2025-02-09 11:31:46.882417+00', NULL, 'd616bcbb'),
+	('1c409bdd-d410-fabf-7036-d70db791ecd8', 'd391b336-4273-d101-27f8-d1fbedfde866', '雨量', 'rainfall', 'R', 'Number', 'mm', '光学雨量', '[]', '2025-02-20 15:02:27.368039+00', '2025-02-20 15:02:27.368039+00', NULL, 'd616bcbb');
+	('241de086-8339-5488-91de-d27bf49ec43d', 'd391b336-4273-d101-27f8-d1fbedfde866', '太阳总辐射', 'solarRadiation', 'R', 'Number', '', '', '[]', '2025-02-20 15:03:09.042185+00', '2025-02-20 15:03:09.042185+00', NULL, 'd616bcbb');
 
 
 -- 修改页面可见性
@@ -199,8 +201,6 @@ INSERT INTO "sys_ui_elements" ("id", "parent_id", "element_code", "element_type"
 	('075d9f19-5618-bb9b-6ccd-f382bfd3292b', '5373a6a2-1861-af35-eb4c-adfd5ca55ecd', 'device_service-access', 3, 1129, '/device/service-access', 'mdi:ab-testing', '0', '["SYS_ADMIN"]', '服务接入点管理', '2024-07-01 13:52:09.402+00', '', 'route.device_service_access', ''),
 	('9349380e-da14-1c93-bac1-d2faf9b01a8d', 'e1ebd134-53df-3105-35f4-489fc674d173', 'management_ota', 3, 2, '/management/ota', 'simple-icons:apacheecharts', '0', '["SYS_ADMIN","TENANT_ADMIN"]', 'OTA升级', '2025-02-14 20:57:50.053555+08', '', 'route.management_ota', ''),
 	('ee46a6fa-6778-b16b-477e-b38741697893', 'e1ebd134-53df-3105-35f4-489fc674d173', 'management_package', 3, 1, '/management/package', 'ic:baseline-credit-card', '0', '["SYS_ADMIN","TENANT_ADMIN"]', '升级包管理', '2025-02-14 20:57:10.493488+08', '', 'route.management_package', '');
-;
-
 
 -- 修改默认密码
 INSERT INTO "users" ("id", "name", "phone_number", "email", "status", "authority", "password", "tenant_id", "remark", "additional_info", "created_at", "updated_at", "password_last_updated", "last_visit_time") VALUES
