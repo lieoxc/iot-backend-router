@@ -87,7 +87,7 @@ func RouterInit(cfgPath string) *gin.Engine {
 			v1.GET("device/online/status/ws", controllers.TelemetryDataApi.ServeDeviceStatusByWS)
 			// 设备遥测keys（ws）
 			v1.GET("telemetry/datas/current/keys/ws", controllers.TelemetryDataApi.ServeCurrentDataByKey)
-			v1.GET("ota/download/files/upgradePackage/:path/:file", controllers.OTAApi.DownloadOTAUpgradePackage)
+			v1.GET("ota/download/upgradePackage/:path/:file", controllers.OTAApi.DownloadOTAUpgradePackage)
 			// 获取系统时间
 			v1.GET("systime", controllers.SystemApi.HandleSystime)
 			// 查询系统功能设置

@@ -216,17 +216,17 @@ func SubscribeCustomer() error {
 		logrus.Debug("attribute message:", string(d.Payload()))
 		var devID, cfgID string
 		topicList := strings.Split(d.Topic(), "/")
-		if len(topicList) < 4 {
+		if len(topicList) < 5 {
 			devID = ""
 		} else {
-			cfgID = topicList[2]
-			devID = topicList[3]
+			cfgID = topicList[3]
+			devID = topicList[4]
 		}
 
 		logrus.Debug("NTP 请求, cfgId:", cfgID, "devID:", devID)
 		if cfgID != "" && devID != "" {
 			// 响应设备属性上报
-			publish.PublishNtpResponseMessage(devID, cfgID, nil)
+			publish.PublishNtpResponseMessage(cfgID, devID, nil)
 		}
 	}
 	topic := config.MqttConfig.Customer.SubscribeTopic

@@ -141,7 +141,7 @@ func GPSInit() error {
 	controlPort := "/dev/ttyUSB2" // 用于发送 AT 指令的串口
 	logrus.Debugln("Start GPS Init.")
 	if err := enableGPS(controlPort); err != nil {
-		logrus.Errorln("开启 GPS 功能失败: %v", err)
+		logrus.Errorln("GPS Init Failed.", err)
 		return err
 	}
 	logrus.Debugln("Finsh GPS Init.")

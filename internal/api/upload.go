@@ -24,7 +24,7 @@ type UpLoadApi struct{}
 // 定义文件上传配置
 const (
 	BaseUploadDir = "./files/"
-	OtaPath       = "./api/v1/ota/download/files/"
+	OtaPath       = "./api/v1/ota/download/"
 	MaxFileSize   = 500 << 20 // 200MB
 )
 

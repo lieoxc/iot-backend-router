@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-basic/uuid"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type OTA struct{}
@@ -42,7 +43,12 @@ func (*OTA) CreateOTAUpgradePackage(req *model.CreateOTAUpgradePackageReq, tenan
 	if len(parts) > 1 {
 		result := parts[1]
 		logrus.Debug("result filepath:", result)
-		filepath = "./" + result
+		apiFileHeadPath := viper.GetString("fileStorage.path")
+		if apiFileHeadPath == "" { // 不配置的时候使用本地目录
+			filepath = "./" + result
+		} else {
+			filepath = apiFileHeadPath + result
+		}
 		logrus.Debug("filepath:", filepath)
 	}
 	signature, err := utils.FileSign(filepath, *req.SignatureType)
@@ -291,7 +297,6 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 		return err
 	}
 	otamsg["id"] = randNum
-	otamsg["code"] = "200"
 	var otamsgparams = make(map[string]interface{})
 	otamsgparams["version"] = otapackage.Version
 	otamsgparams["url"] = global.OtaAddress + strings.TrimPrefix(*otapackage.PackageURL, ".")
