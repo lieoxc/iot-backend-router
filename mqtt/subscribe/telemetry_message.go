@@ -164,14 +164,14 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 		}
 	}
 	// go 自动化处理
-	// go func() {
-	// 	err = service.GroupApp.Execute(device, service.AutomateFromExt{
-	// 		TriggerParamType: model.TRIGGER_PARAM_TYPE_TEL,
-	// 		TriggerParam:     triggerParam,
-	// 		TriggerValues:    triggerValues,
-	// 	})
-	// 	if err != nil {
-	// 		logrus.Error("自动化执行失败, err: %w", err)
-	// 	}
-	// }()
+	go func() {
+		err = service.GroupApp.Execute(device, service.AutomateFromExt{
+			TriggerParamType: model.TRIGGER_PARAM_TYPE_TEL,
+			TriggerParam:     triggerParam,
+			TriggerValues:    triggerValues,
+		})
+		if err != nil {
+			logrus.Error("自动化执行失败, err: %w", err)
+		}
+	}()
 }
