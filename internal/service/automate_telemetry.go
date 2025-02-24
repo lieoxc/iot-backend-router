@@ -83,7 +83,7 @@ func (a *Automate) Execute(deviceInfo *model.Device, fromExt AutomateFromExt) er
 	a.device = deviceInfo
 	a.formExt = fromExt
 	//
-
+	logrus.Debugf("conf:%v dev:%s Execute", deviceInfo.DeviceConfigID, deviceInfo.DeviceConfigID)
 	//单类设备t
 	if deviceInfo.DeviceConfigID != nil {
 		deviceConfigId := *deviceInfo.DeviceConfigID
@@ -185,9 +185,11 @@ func (*Automate) LimiterAllow(id string) bool {
 func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	logrus.Debug("len of AutomateExecteSceeInfos:", len(info.AutomateExecteSceeInfos))
 	for _, v := range info.AutomateExecteSceeInfos {
 		//场景频率限制(根据场景id)
 		if !a.LimiterAllow(v.SceneAutomationId) {
+			logrus.Debug("ExecuteRun Limiter Not Allow")
 			continue
 		}
 		logrus.Debugf("查询自动化是否关闭1: info:%#v,", v.SceneAutomationId)
