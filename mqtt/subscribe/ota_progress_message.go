@@ -71,7 +71,10 @@ func OtaUpgrade(payload []byte, topic string) {
 		logrus.Errorf("未找到对应升级任务")
 		return
 	}
-
+	if otaTaskDetail == nil {
+		logrus.Warnf("%v : 未找到对应升级任务", device.ID)
+		return
+	}
 	intProgress, err := strconv.Atoi(progressMsg.UpgradeProgress.(string))
 	if err != nil {
 		desc := progressMsg.UpgradeProgress.(string) + " " + progressMsg.StatusDetail
