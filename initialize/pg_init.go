@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	global "project/pkg/global"
@@ -142,15 +144,23 @@ func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (stri
 	if l.LogLevel <= logger.Silent {
 		return
 	}
-
 	elapsed := time.Since(begin)
 	sql, rows := fc()
 
+	// 获取当前调用栈信息（穿透 4 层）
+	pc := make([]uintptr, 1)
+	runtime.Callers(7, pc)
+	frame, _ := runtime.CallersFrames(pc).Next()
+	dir := filepath.Dir(frame.File)
 	logEntry := logrus.WithContext(ctx).WithFields(logrus.Fields{
 		"elapsed": elapsed,
 		"rows":    rows,
+		"gorm_caller": fmt.Sprintf("%s/%s:%d",
+			filepath.Base(dir),
+			filepath.Base(frame.File),
+			frame.Line), // 直接记录 SQL 触发点
 	})
-
+	filepath.Base(frame.File)
 	switch {
 	case err != nil && l.LogLevel >= logger.Error:
 		logEntry.Errorf("SQL: %s, Error: %v", sql, err)
