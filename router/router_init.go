@@ -20,7 +20,7 @@ import (
 // swagger embed files
 
 func RouterInit(cfgPath string) *gin.Engine {
-	//gin.SetMode(gin.ReleaseMode) //开启生产模式
+	gin.SetMode(gin.ReleaseMode) //开启生产模式
 	gin.DefaultWriter = logrus.StandardLogger().Out
 	gin.DefaultErrorWriter = logrus.StandardLogger().Out
 	router := gin.Default()
@@ -52,8 +52,6 @@ func RouterInit(cfgPath string) *gin.Engine {
 		filepath := c.Param("filepath")
 		c.File(apiFileHeadPath + "/files" + filepath)
 	})
-
-	//router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.Use(middleware.Cors())
 	// 初始化响应处理器

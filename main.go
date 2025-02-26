@@ -146,12 +146,8 @@ func successInfo() {
 
 	// 打印启动成功消息
 	logrus.Debug("----------------------------------------")
-	logrus.Debug("        TingsPanel 启动成功!")
+	logrus.Debug("        IOTPanel 启动成功!")
 	logrus.Debug("----------------------------------------")
 	logrus.Debugf("启动时间: %s\n", startTime)
-	logrus.Debug("版本: v1.1.4社区版")
-	logrus.Debug("----------------------------------------")
-	logrus.Debug("欢迎使用 TingsPanel！")
-	logrus.Debug("如需帮助，请访问: http://thingspanel.io")
-	logrus.Debug("----------------------------------------")
+	logrus.Debug("版本: v1.1.5")
 }
