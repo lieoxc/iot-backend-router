@@ -20,6 +20,7 @@ type Telemetry struct {
 	PublishTopic          string `json:"publish_topic"`
 	GatewaySubscribeTopic string `json:"gateway_subscribe_topic"`
 	GatewayPublishTopic   string `json:"gateway_publish_topic"`
+	ForwardPublishTopic   string `json:"forward_publish_topic"`
 	QoS                   int    `json:"qos"`
 	PoolSize              int    `json:"pool_size"`
 	BatchSize             int    `json:"batch_size"`
@@ -30,6 +31,7 @@ type TopicConfig struct {
 	SubscribeTopic        string `json:"subscribe_topic"`
 	GatewaySubscribeTopic string `json:"gateway_subscribe_topic"`
 	GatewayPublishTopic   string `json:"gateway_publish_topic"`
+	ForwardPublishTopic   string `json:"forward_publish_topic"`
 	QoS                   int    `json:"qos"`
 }
 
@@ -39,6 +41,7 @@ type AttributeConfig struct {
 	PublishResponseTopic          string `json:"publish_response_topic"`
 	GatewayPublishResponseTopic   string `json:"gateway_publish_response_topic"`
 	PublishTopic                  string `json:"publish_topic"`
+	ForwardPublishTopic           string `json:"forward_publish_topic"`
 	GatewayPublishTopic           string `json:"gateway_publish_topic"`
 	SubscribeResponseTopic        string `json:"subscribe_response_topic"`
 	GatewaySubscribeResponseTopic string `json:"gateway_subscribe_response_topic"`

@@ -8,6 +8,7 @@ import (
 	"project/internal/model"
 	service "project/internal/service"
 	config "project/mqtt"
+	"project/mqtt/publish"
 	"strings"
 	"time"
 
@@ -46,6 +47,12 @@ func DeviceAttributeReport(payload []byte, topic string) (string, error) {
 		logrus.Error(err.Error())
 		return device.DeviceNumber, err
 	}
+	//消息转发给第三方
+	err = publish.ForwardAttributeMessage(*device.DeviceConfigID, device.ID, payload)
+	if err != nil {
+		logrus.Error("telemetry forward error:", err.Error())
+	}
+
 	err = deviceAttributesHandle(device, reqMap, topic)
 	if err != nil {
 		logrus.Error(err.Error())

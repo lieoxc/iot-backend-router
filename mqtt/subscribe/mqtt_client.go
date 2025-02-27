@@ -178,11 +178,8 @@ func SubscribeTelemetry() error {
 	}
 
 	topic := config.MqttConfig.Telemetry.SubscribeTopic
-	//topic = GenTopic(topic)
-	logrus.Info("subscribe topic:", topic)
-
+	logrus.Debug("subscribe topic:", topic)
 	qos := byte(config.MqttConfig.Telemetry.QoS)
-
 	if token := SubscribeMqttClient.Subscribe(topic, qos, deviceTelemetryMessageHandler); token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())
 		return err
@@ -198,8 +195,7 @@ func SubscribeRegister() error {
 		RegisterMessages(d.Payload(), d.Topic())
 	}
 	topic := config.MqttConfig.Register.SubscribeTopic
-	//topic = GenTopic(topic)
-	logrus.Info("subscribe topic:", topic)
+	logrus.Debug("subscribe topic:", topic)
 	qos := byte(config.MqttConfig.Commands.QoS)
 	if token := SubscribeMqttClient.Subscribe(topic, qos, deviceRegisterHandler); token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())
@@ -225,7 +221,7 @@ func SubscribeCustomer() error {
 
 		logrus.Debug("NTP 请求, cfgId:", cfgID, "devID:", devID)
 		if cfgID != "" && devID != "" {
-			// 响应设备属性上报
+			// 响应设备NTP请求
 			publish.PublishNtpResponseMessage(cfgID, devID, nil)
 		}
 	}
@@ -251,10 +247,6 @@ func SubscribeAttribute() error {
 		if err != nil {
 			logrus.Error(err)
 		}
-		// if deviceNumber != "" && messageId != "" {
-		// 	// 响应设备属性上报
-		// 	publish.PublishAttributeResponseMessage(deviceNumber, messageId, err)
-		// }
 	}
 	topic := config.MqttConfig.Attributes.SubscribeTopic
 	//topic = GenTopic(topic)
@@ -320,10 +312,6 @@ func SubscribeEvent() error {
 		if err != nil {
 			logrus.Error(err)
 		}
-		// if deviceNumber != "" && messageId != "" {
-		// 	// 响应设备属性上报
-		// 	publish.PublishEventResponseMessage(deviceNumber, messageId, method, err)
-		// }
 	}
 	topic := config.MqttConfig.Events.SubscribeTopic
 	qos := byte(config.MqttConfig.Events.QoS)

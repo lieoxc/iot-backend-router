@@ -11,6 +11,7 @@ import (
 	model "project/internal/model"
 	service "project/internal/service"
 	config "project/mqtt"
+	"project/mqtt/publish"
 
 	"github.com/sirupsen/logrus"
 )
@@ -67,11 +68,6 @@ func MessagesChanHandler(messages <-chan map[string]interface{}) {
 func TelemetryMessages(payload []byte, topic string) {
 	logrus.Debugln(string(payload))
 	// 验证消息有效性
-	//telemetryPayload, err := verifyPayload(payload)
-	//if err != nil {
-	//	logrus.Error(err.Error(), topic)
-	//	return
-	//}
 	datas := strings.Split(string(topic), "/")
 	logrus.Debugln(datas[2], " mac:", datas[3])
 	device, err := initialize.GetDeviceCacheById(datas[3])
@@ -95,17 +91,17 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 		}
 	}
 	//消息转发给第三方
-	// err := publish.ForwardTelemetryMessage(device.ID, telemetryBody)
-	// if err != nil {
-	// 	logrus.Error("telemetry forward error:", err.Error())
-	// }
+	err := publish.ForwardTelemetryMessage(*device.DeviceConfigID, device.ID, telemetryBody)
+	if err != nil {
+		logrus.Error("telemetry forward error:", err.Error())
+	}
 
 	// 心跳处理
 	go HeartbeatDeal(device)
 
 	//byte转map
 	var reqMap = make(map[string]interface{})
-	err := json.Unmarshal(telemetryBody, &reqMap)
+	err = json.Unmarshal(telemetryBody, &reqMap)
 	if err != nil {
 		logrus.Error(err.Error())
 		return

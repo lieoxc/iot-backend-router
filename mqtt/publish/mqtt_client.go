@@ -232,11 +232,35 @@ func PublishCommandMessage(topic string, payload []byte) error {
 }
 
 // 转发telemetry消息
-func ForwardTelemetryMessage(deviceId string, payload []byte) error {
-	telemetryTopic := config.MqttConfig.Telemetry.SubscribeTopic + "/" + deviceId
+func ForwardTelemetryMessage(cfgID, deviceId string, payload []byte) error {
+	forwardTopic := config.MqttConfig.Telemetry.ForwardPublishTopic + "/" + cfgID + "/" + deviceId
 	qos := byte(config.MqttConfig.Telemetry.QoS)
 	// 发布消息
-	token := mqttClient.Publish(telemetryTopic, qos, false, payload)
+	token := mqttClient.Publish(forwardTopic, qos, false, payload)
+	if token.Wait() && token.Error() != nil {
+		logrus.Error(token.Error())
+	}
+	return token.Error()
+}
+
+// 转发 Attributes 消息
+func ForwardAttributeMessage(cfgID, deviceId string, payload []byte) error {
+	forwardTopic := config.MqttConfig.Attributes.ForwardPublishTopic + "/" + cfgID + "/" + deviceId
+	qos := byte(config.MqttConfig.Attributes.QoS)
+	// 发布消息
+	token := mqttClient.Publish(forwardTopic, qos, false, payload)
+	if token.Wait() && token.Error() != nil {
+		logrus.Error(token.Error())
+	}
+	return token.Error()
+}
+
+// 转发events消息
+func ForwardEventsMessage(cfgID, deviceId string, payload []byte) error {
+	forwardTopic := config.MqttConfig.Events.ForwardPublishTopic + "/" + deviceId + "/" + deviceId
+	qos := byte(config.MqttConfig.Attributes.QoS)
+	// 发布消息
+	token := mqttClient.Publish(forwardTopic, qos, false, payload)
 	if token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())
 	}
