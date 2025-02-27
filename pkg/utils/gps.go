@@ -54,28 +54,37 @@ func readGPSData(portName string) (GPSData, error) {
 	dataCh := make(chan GPSData)
 	errCh := make(chan error)
 
-	go func() {
+	go func(ctx context.Context) {
+		defer close(dataCh) // 确保通道关闭
+		defer close(errCh)  // 确保通道关闭
+
 		reader := bufio.NewReader(port)
 		for {
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				errCh <- fmt.Errorf("读取串口数据时出错: %v", err)
+			select {
+			case <-ctx.Done(): // 监听上下文取消信号
+				logrus.Debug("子协程退出")
 				return
-			}
-
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(line, "$GPRMC") {
-				data, err := parseGPRMC(line)
+			default:
+				line, err := reader.ReadString('\n')
 				if err != nil {
-					errCh <- fmt.Errorf("解析 GPRMC 消息失败: %v", err)
+					errCh <- fmt.Errorf("读取串口数据时出错: %v", err)
 					return
 				}
-				data.LocalTimeStr = data.LocalTime.Format("2006-01-02 15:04:05")
-				dataCh <- data
-				return
+
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "$GPRMC") {
+					data, err := parseGPRMC(line)
+					if err != nil {
+						errCh <- fmt.Errorf("解析 GPRMC 消息失败: %v", err)
+						return
+					}
+					data.LocalTimeStr = data.LocalTime.Format("2006-01-02 15:04:05")
+					dataCh <- data
+					return
+				}
 			}
 		}
-	}()
+	}(ctx)
 
 	select {
 	case data := <-dataCh:
@@ -86,6 +95,7 @@ func readGPSData(portName string) (GPSData, error) {
 	case err := <-errCh:
 		return GPSData{}, err
 	case <-ctx.Done():
+		logrus.Debug("readGPSData exit")
 		return GPSData{}, fmt.Errorf("读取 GPS 数据超时")
 	}
 }
@@ -100,11 +110,14 @@ func parseGPRMC(sentence string) (GPSData, error) {
 	// 拆分字段
 	fields := strings.Split(sentence, ",")
 	if len(fields) < 10 {
-		return GPSData{}, fmt.Errorf("GPRMC 消息字段不足: %s", sentence)
+		return GPSData{}, fmt.Errorf("GPRMC fields no finsh")
 	}
 
 	// 提取 UTC 时间（hhmmss.sss）
 	rawTime := fields[1] // 格式: HHMMSS.SS
+	if len(rawTime) < 7 {
+		return GPSData{}, fmt.Errorf("GPS  rawTime no finsh")
+	}
 	hh, mm, ss := rawTime[:2], rawTime[2:4], rawTime[4:6]
 
 	// 提取日期（DDMMYY）
@@ -166,7 +179,7 @@ func GetNtpInfo() (GPSData, error) {
 	data, err := readGPSData(gpsPort)
 	if err != nil {
 		logrus.Errorf("读取 GPS 数据失败: %v", err)
-		return GPSData{}, nil
+		return GPSData{}, err
 	}
 	return data, nil
 }
