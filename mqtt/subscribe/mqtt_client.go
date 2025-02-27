@@ -75,15 +75,6 @@ func subscribe() error {
 		logrus.Error(err)
 		return err
 	}
-	// 订阅在线离线消息
-	//SubscribeDeviceStatus()
-
-	//网关订阅主题
-	err = GatewaySubscribeTopic()
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
 
 	// 订阅设备命令消息
 	err = SubscribeCommand()
