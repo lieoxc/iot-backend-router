@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -41,41 +42,52 @@ func enableGPS(portName string) error {
 
 // 读取 GPS 数据的函数
 func readGPSData(portName string) (GPSData, error) {
-	port, err := serial.Open(portName, &serial.Mode{
-		BaudRate: 9600,
-	})
+	port, err := serial.Open(portName, &serial.Mode{BaudRate: 9600})
 	if err != nil {
 		return GPSData{}, fmt.Errorf("无法打开串口 %s: %v", portName, err)
 	}
 	defer port.Close()
 
-	reader := bufio.NewReader(port)
-	logrus.Debug("开始读取 GPS 数据...")
-	var data GPSData
-	for {
-		line, err := reader.ReadString('\n') // 读取一行数据
-		if err != nil {
-			logrus.Error("读取串口数据时出错: %v", err)
-			continue
-		}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-		line = strings.TrimSpace(line) // 去除换行符
-		if strings.HasPrefix(line, "$") {
+	dataCh := make(chan GPSData)
+	errCh := make(chan error)
+
+	go func() {
+		reader := bufio.NewReader(port)
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				errCh <- fmt.Errorf("读取串口数据时出错: %v", err)
+				return
+			}
+
+			line = strings.TrimSpace(line)
 			if strings.HasPrefix(line, "$GPRMC") {
-				data, err = parseGPRMC(line)
+				data, err := parseGPRMC(line)
 				if err != nil {
-					logrus.Error("解析 GPGGA 消息失败: %v", err)
-					continue
+					errCh <- fmt.Errorf("解析 GPRMC 消息失败: %v", err)
+					return
 				}
 				data.LocalTimeStr = data.LocalTime.Format("2006-01-02 15:04:05")
-				logrus.Debugf("UTC时间: %s", data.LocalTimeStr)
-				logrus.Debugf("纬度: %.6f°", data.Latitude)
-				logrus.Debugf("经度: %.6f°", data.Longitude)
-				break
+				dataCh <- data
+				return
 			}
 		}
+	}()
+
+	select {
+	case data := <-dataCh:
+		logrus.Debugf("UTC时间: %s", data.LocalTimeStr)
+		logrus.Debugf("纬度: %.6f°", data.Latitude)
+		logrus.Debugf("经度: %.6f°", data.Longitude)
+		return data, nil
+	case err := <-errCh:
+		return GPSData{}, err
+	case <-ctx.Done():
+		return GPSData{}, fmt.Errorf("读取 GPS 数据超时")
 	}
-	return data, nil
 }
 
 // 解析 GPRMC 消息以获取 UTC 时间和经纬度
@@ -153,7 +165,7 @@ func GetNtpInfo() (GPSData, error) {
 	// 开始读取 GPS 数据
 	data, err := readGPSData(gpsPort)
 	if err != nil {
-		logrus.Errorln("读取 GPS 数据失败: %v", err)
+		logrus.Errorf("读取 GPS 数据失败: %v", err)
 		return GPSData{}, nil
 	}
 	return data, nil
