@@ -200,7 +200,7 @@ func SubscribeCustomer() error {
 	// 订阅attribute消息
 	deviceCustomerHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
-		logrus.Debug("attribute message:", string(d.Payload()))
+		logrus.Debug("customer message:", string(d.Payload()))
 		var devID, cfgID string
 		topicList := strings.Split(d.Topic(), "/")
 		if len(topicList) < 5 {
