@@ -10,6 +10,7 @@ import (
 
 	"project/initialize"
 	"project/internal/app"
+	"project/internal/private_register"
 	"project/internal/query"
 	"project/mqtt"
 	"project/mqtt/device"
@@ -85,6 +86,7 @@ func main() {
 	router := router.RouterInit(ConfigPath)
 	srv := initServer(host, port, router)
 
+	private_register.PrivateRegisterInit()
 	// 启动服务
 	go startServer(srv, host, port)
 

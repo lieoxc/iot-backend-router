@@ -55,4 +55,6 @@ func RegisterMessages(payload []byte, topic string) {
 		return
 	}
 	logrus.Debugln("create Successed:", data.DeviceNumber)
+
+	//TODO 本地注册完后，需要去内网监控站注册
 }

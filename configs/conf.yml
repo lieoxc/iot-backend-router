@@ -20,7 +20,8 @@ jwt:
 
 fileStorage:
   path: 
-
+web:
+  addr: 192.168.6.175:9999
 db:
   psql:
     host: 192.168.10.1 # 默认localhost
