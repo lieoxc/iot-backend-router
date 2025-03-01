@@ -13,24 +13,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	DefaultTenantId       = "d616bcbb"
-	DefaultGatewayCfgName = "气象站"
-	DefaultESP32CfgName   = "ESP32"
-)
-
-var (
-	DefaultGatewayCfgID = "964d6220-ecbf-a043-1960-85b1a2758cea"
-	DefaultESP32CfgID   = "315d9d82-5c76-3197-4eab-8c0a641ccdc9"
-)
-
 type HTTPRes struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
 }
 
-func gatewayRegister(devID string) error {
+func GatewayRegister(devID string) error {
 	addr := viper.GetString("web.addr")
 	if addr == "" {
 		addr = "localhost:9999"
@@ -43,8 +32,8 @@ func gatewayRegister(devID string) error {
 	// 构造请求数据
 	reqData := model.GatewayRegisterReq{
 		GatewayId: devID, // 将设备 ID 放入请求数据中
-		TenantId:  DefaultTenantId,
-		Model:     DefaultGatewayCfgName,
+		TenantId:  model.DefaultTenantId,
+		Model:     model.DefaultGatewayCfgName,
 	}
 
 	// 将请求数据编码为 JSON
@@ -78,7 +67,7 @@ func gatewayRegister(devID string) error {
 	logrus.Debugf("MqttClientId:%v", respData.Data)
 	return nil
 }
-func subDevRegister(regsiterReq model.DeviceRegisterReq) error {
+func SubDevRegister(regsiterReq model.DeviceRegisterReq) error {
 	addr := viper.GetString("web.addr")
 	if addr == "" {
 		addr = "localhost:9999"
@@ -122,18 +111,19 @@ func subDevRegister(regsiterReq model.DeviceRegisterReq) error {
 func RegisterGateway() (string, error) {
 	// 注册网关设备
 	// 1. 查找到气象站设备的ID
+	var cfgID = model.DefaultGatewayCfgID
 	req := model.GetDeviceListByPageReq{
-		DeviceConfigId: &DefaultGatewayCfgID,
+		DeviceConfigId: &cfgID,
 	}
-	total, list, err := dal.GetDeviceListByPage(&req, DefaultTenantId)
+	total, list, err := dal.GetDeviceListByPage(&req, model.DefaultTenantId)
 	if err != nil {
-		logrus.Error("Failed to get device list by cfgID:", DefaultGatewayCfgID)
+		logrus.Error("Failed to get device list by cfgID:", model.DefaultGatewayCfgID)
 		return "", err
 	}
 	if total == 1 {
-		gatewayRegister(list[0].ID)
+		GatewayRegister(list[0].ID)
 	} else {
-		logrus.Error("dev Number error:", DefaultGatewayCfgID)
+		logrus.Error("dev Number error:", model.DefaultGatewayCfgID)
 		return "", fmt.Errorf("dev Number error")
 	}
 	return list[0].ID, nil
@@ -142,13 +132,14 @@ func RegisterGateway() (string, error) {
 func RegisterSubDev(gatewayID string) error {
 	// 注册网关设备
 	// 1. 查找到气象站设备的ID
+	var cfgID = model.DefaultESP32CfgID
 	deviceListReq := model.GetDeviceListByPageReq{
 		PageReq:        model.PageReq{Page: 1, PageSize: 1000},
-		DeviceConfigId: &DefaultESP32CfgID,
+		DeviceConfigId: &cfgID,
 	}
-	total, list, err := dal.GetDeviceListByPage(&deviceListReq, DefaultTenantId)
+	total, list, err := dal.GetDeviceListByPage(&deviceListReq, model.DefaultTenantId)
 	if err != nil {
-		logrus.Error("Failed to get device list by cfgID:", DefaultGatewayCfgID)
+		logrus.Error("Failed to get device list by cfgID:", model.DefaultGatewayCfgID)
 		return err
 	}
 	var regsiterReq model.DeviceRegisterReq
@@ -158,19 +149,19 @@ func RegisterSubDev(gatewayID string) error {
 	for _, dev := range list {
 		item := model.DeviceSubItem{
 			SubAddr: dev.ID,
-			Model:   DefaultESP32CfgName,
+			Model:   model.DefaultESP32CfgName,
 		}
 		items = append(items, item)
 	}
 	regsiterReq.Registers = items
-	subDevRegister(regsiterReq)
+	SubDevRegister(regsiterReq)
 	return nil
 }
 
 func PrivateRegisterInit() {
 	gatewayID, err := RegisterGateway()
 	if err != nil {
-		logrus.Error("Failed to get device list by cfgID:", DefaultGatewayCfgID)
+		logrus.Error("Failed to get device list by cfgID:", model.DefaultGatewayCfgID)
 		return
 	}
 	RegisterSubDev(gatewayID)
