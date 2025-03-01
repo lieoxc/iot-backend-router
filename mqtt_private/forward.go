@@ -103,7 +103,7 @@ func ForwardAttributesMessage(cfgID, devID string, payload []byte) error {
 	}
 	logrus.Debugf("privateMqttClient pub topic:%v payload%v", pubAttributesTopic, string(jsonData))
 
-	token := privateMqttClient.Publish(pubAttributesTopic, qos, false, payload)
+	token := privateMqttClient.Publish(pubAttributesTopic, qos, false, jsonData)
 	if token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())
 	}
@@ -126,7 +126,7 @@ func ForwardEventsMessage(cfgID, devID string, payload []byte) error {
 		return err
 	}
 	logrus.Debugf("privateMqttClient pub topic:%v payload%v", pubEventsTopic, string(jsonData))
-	token := privateMqttClient.Publish(pubEventsTopic, qos, false, payload)
+	token := privateMqttClient.Publish(pubEventsTopic, qos, false, jsonData)
 	if token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())
 	}
