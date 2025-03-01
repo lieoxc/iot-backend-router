@@ -48,7 +48,7 @@ func DeviceAttributeReport(payload []byte, topic string) (string, error) {
 		return device.DeviceNumber, err
 	}
 	//消息转发给第三方
-	err = mqtt_private.ForwardTelemetryMessage(*device.DeviceConfigID, device.ID, payload)
+	err = mqtt_private.ForwardAttributesMessage(*device.DeviceConfigID, device.ID, payload)
 	if err != nil {
 		logrus.Error("telemetry forward error:", err.Error())
 	}

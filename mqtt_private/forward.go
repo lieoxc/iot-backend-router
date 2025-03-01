@@ -65,12 +65,12 @@ func makeGatewayEventPayload(cfgID, devID string, payload []byte) ([]byte, error
 
 // 上报telemetry消息
 func ForwardTelemetryMessage(cfgID, devID string, payload []byte) error {
-	if privateMqttClient.IsConnected() == false {
+	if privateMqttClient.IsConnected() == false || gatewayID == "" {
 		logrus.Debug("privateMqttClient is not connected")
 		return nil
 	}
 	qos := byte(PrivateMqttConfig.Telemetry.QoS)
-	pubTelemetryTopic := PrivateMqttConfig.Telemetry.GatewayPublishTopic + "/" + cfgID + "/" + devID
+	pubTelemetryTopic := PrivateMqttConfig.Telemetry.GatewayPublishTopic + "/" + model.DefaultGatewayCfgID + "/" + gatewayID
 	logrus.Debug("topic:", pubTelemetryTopic, "value:", string(payload))
 	// 转发消息
 	jsonData, err := makeGatewayPubPayload(cfgID, devID, payload)
@@ -88,12 +88,12 @@ func ForwardTelemetryMessage(cfgID, devID string, payload []byte) error {
 
 // 上报attributes消息
 func ForwardAttributesMessage(cfgID, devID string, payload []byte) error {
-	if privateMqttClient.IsConnected() == false {
+	if privateMqttClient.IsConnected() == false || gatewayID == "" {
 		logrus.Debug("privateMqttClient is not connected")
 		return nil
 	}
 	qos := byte(PrivateMqttConfig.Telemetry.QoS)
-	pubAttributesTopic := PrivateMqttConfig.Attributes.GatewayPublishTopic + "/" + cfgID + "/" + devID
+	pubAttributesTopic := PrivateMqttConfig.Attributes.GatewayPublishTopic + "/" + model.DefaultGatewayCfgID + "/" + gatewayID
 	logrus.Debug("topic:", pubAttributesTopic, "value:", string(payload))
 	// 发布消息
 	jsonData, err := makeGatewayPubPayload(cfgID, devID, payload)
@@ -112,12 +112,12 @@ func ForwardAttributesMessage(cfgID, devID string, payload []byte) error {
 
 // 上报tevents消息
 func ForwardEventsMessage(cfgID, devID string, payload []byte) error {
-	if privateMqttClient.IsConnected() == false {
+	if privateMqttClient.IsConnected() == false || gatewayID == "" {
 		logrus.Debug("privateMqttClient is not connected")
 		return nil
 	}
 	qos := byte(PrivateMqttConfig.Telemetry.QoS)
-	pubEventsTopic := PrivateMqttConfig.Events.GatewayPublishTopic + "/" + cfgID + "/" + devID
+	pubEventsTopic := PrivateMqttConfig.Events.GatewayPublishTopic + "/" + model.DefaultGatewayCfgID + "/" + gatewayID
 	logrus.Debug("topic:", pubEventsTopic, "value:", string(payload))
 	// 发布消息
 	jsonData, err := makeGatewayEventPayload(cfgID, devID, payload)

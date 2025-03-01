@@ -3,12 +3,15 @@ package mqtt_private
 import (
 	"encoding/json"
 	"fmt"
+	"project/internal/dal"
+	"project/internal/model"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 var PrivateMqttConfig Config
+var gatewayID string
 
 func MqttPrivateInit() error {
 	// 初始化配置
@@ -17,6 +20,8 @@ func MqttPrivateInit() error {
 		return err
 	}
 	createMqttClient()
+
+	GetGatewayID()
 	return nil
 }
 
@@ -99,4 +104,24 @@ func loadPrivateConfig() error {
 		logrus.Println("Using default batch_size:", batchSize)
 	}
 	return nil
+}
+func GetGatewayID() string {
+	if gatewayID != "" {
+		return gatewayID
+	}
+	var cfgID = model.DefaultGatewayCfgID
+	req := model.GetDeviceListByPageReq{
+		DeviceConfigId: &cfgID,
+	}
+	total, list, err := dal.GetDeviceListByPage(&req, model.DefaultTenantId)
+	if err != nil {
+		logrus.Error("Failed to get device list by cfgID:", model.DefaultGatewayCfgID)
+		return ""
+	}
+	if total == 1 {
+		gatewayID = list[0].ID
+		return gatewayID
+	}
+	logrus.Error("dev Number error:", model.DefaultGatewayCfgID)
+	return ""
 }
