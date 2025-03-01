@@ -40,7 +40,6 @@ db:
 
   redis:
     addr: 192.168.10.1:6379 # 默认localhost:6379
-    # addr: 47.92.253.145:6379 # 默认localhost:6379
     db: 1 # 默认0
     db1: 10 # 默认10，不能是0，用户设备状态管理
     password:
@@ -83,9 +82,6 @@ mqtt:
 
     # 发布设置属性请求：devices/attributes/set/{device_number}/{message_id}
     publish_topic: devices/attributes/set/
-
-    # 订阅设置属性响应：+位置是{message_id} 
-    subscribe_response_topic: devices/attributes/set/response/+
 
     # 发布获取属性请求：devices/attributes/get/{device_number}
     publish_get_topic: devices/attributes/get/

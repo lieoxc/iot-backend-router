@@ -44,12 +44,6 @@ func subscribe() error {
 		logrus.Error(err)
 		return err
 	}
-	// 订阅设置设备属性回应
-	err = SubscribeSetAttribute()
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
 	// 订阅event消息
 	err = SubscribeEvent()
 	if err != nil {
@@ -241,25 +235,6 @@ func SubscribeAttribute() error {
 	}
 	topic := config.MqttConfig.Attributes.SubscribeTopic
 	//topic = GenTopic(topic)
-	logrus.Info("subscribe topic:", topic)
-	qos := byte(config.MqttConfig.Attributes.QoS)
-	if token := SubscribeMqttClient.Subscribe(topic, qos, deviceAttributeHandler); token.Wait() && token.Error() != nil {
-		logrus.Error(token.Error())
-		return token.Error()
-	}
-	return nil
-}
-
-// 路由器设置完属性后，设备上报的响应消息
-func SubscribeSetAttribute() error {
-	// 订阅attribute消息
-	deviceAttributeHandler := func(_ mqtt.Client, d mqtt.Message) {
-		// 处理消息
-		logrus.Debug("attribute message:", string(d.Payload()))
-		DeviceSetAttributeResponse(d.Payload(), d.Topic())
-	}
-	topic := config.MqttConfig.Attributes.SubscribeResponseTopic
-	topic = GenTopic(topic)
 	logrus.Info("subscribe topic:", topic)
 	qos := byte(config.MqttConfig.Attributes.QoS)
 	if token := SubscribeMqttClient.Subscribe(topic, qos, deviceAttributeHandler); token.Wait() && token.Error() != nil {
