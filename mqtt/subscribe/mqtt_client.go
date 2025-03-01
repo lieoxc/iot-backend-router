@@ -234,7 +234,6 @@ func SubscribeAttribute() error {
 		}
 	}
 	topic := config.MqttConfig.Attributes.SubscribeTopic
-	//topic = GenTopic(topic)
 	logrus.Info("subscribe topic:", topic)
 	qos := byte(config.MqttConfig.Attributes.QoS)
 	if token := SubscribeMqttClient.Subscribe(topic, qos, deviceAttributeHandler); token.Wait() && token.Error() != nil {

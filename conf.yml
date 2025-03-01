@@ -1,0 +1,153 @@
+# 如需在系统变量中设置配置项，可使用GOTP_开头的变量名，如：GOTP_DB_PSQL_DBTYPE为db.psql.dbType
+
+service:
+  http: 
+    host: 0.0.0.0 # 默认localhost
+    port: # 默认9999
+
+log:
+  # 0-控制台输出 1-文件输出 2-文件和控制台输出
+  adapter_type: 0
+  # 文件最多保存多少天
+  maxdays: 7
+  # 日志级别 (panic fatal error warn info debug trace)
+  level: debug # 默认info
+  # 每个文件保存的最大行数
+  maxlines: 10000
+  path: /mnt/iot/logs
+jwt:
+  key: 1hj5b0sp9
+
+fileStorage:
+  path: /mnt/iot/files/
+web:
+  addr: 192.168.6.175:9999
+db:
+  psql:
+    host: 127.0.0.1 # 默认localhost
+    port: 5432 # 默认5432
+    dbname: thingspanel
+    username: postgres
+    password: postgresThingsPanel
+    time_zone: Asia/Shanghai # 默认Asia/Shanghai
+
+    idle_conns: 5 # 空闲连接池中的最大连接数，建议为open_conns的百分之5-20之间
+    open_conns: 50 # 最大打开连接数,timescaledb默认为100,考虑到其他服务也会使用数据库，建议这里设置为50
+    # SQL日志级别 (1-静音 2-错误 3-警告 4-信息)
+    log_level: 4 # 默认1
+    # 慢SQL阈值（毫秒）。慢SQL会在sqlloglevel大于等于3时输出。
+    slow_threshold: 200 # 默认200毫秒
+
+  redis:
+    addr: 127.0.0.1:6379 # 默认localhost:6379
+    # addr: 47.92.253.145:6379 # 默认localhost:6379
+    db: 1 # 默认0
+    db1: 10 # 默认10，不能是0，用户设备状态管理
+    password:
+mqtt:
+  access_address: 127.0.0.1:2883
+  broker: 127.0.0.1:2883 # 默认localhost:1883
+  user: root # 默认root
+  pass: root # 默认root
+  channel_buffer_size: 10000 # 默认10000
+  write_workers: 1 # 消息队列入库线程数，默认10
+  register:
+    # 订阅注册：devices/register
+    subscribe_topic: devices/register
+  customer:
+    # 订阅NT请求：devices/gps/get/{cfgID}/{devID}  
+    subscribe_topic: devices/gps/get/+/+
+
+    # 发布NTP消息：devices/gps/response/{cfgID}/{devID}
+    publish_topic: devices/gps/response/
+  telemetry:
+    # 如果发给协议插件，则是devices/telemetry/control/{device_id}
+    publish_topic: devices/telemetry/control/
+
+    # 订阅遥测：devices/telemetry/{cfgID}/{devID}
+    subscribe_topic: devices/telemetry/+/+ 
+
+    # 遥测转发主题 forward/telemetry/{cfgID}/{devID}
+    forward_publish_topic: forward/telemetry
+
+    pool_size: 10 # 消息处理线程池，默认100
+    batch_size: 100 # 默认100 最大一次批量写入数据库的数据量
+    qos: 0
+  attributes:
+    # 订阅属性：devices/attributes/{cfgID}/{devID}
+    subscribe_topic: devices/attributes/+/+ 
+
+    # 发布接收属性响应：devices/attributes/response/{device_number}/{message_id}
+    publish_response_topic: devices/attributes/response/
+
+    # 发布设置属性请求：devices/attributes/set/{device_number}/{message_id}
+    publish_topic: devices/attributes/set/
+
+    # 订阅设置属性响应：+位置是{message_id} 
+    subscribe_response_topic: devices/attributes/set/response/+
+
+    # 发布获取属性请求：devices/attributes/get/{device_number}
+    publish_get_topic: devices/attributes/get/
+
+    # 设备属性转发主题 forward/attributes/{cfgID}/{devID}
+    forward_publish_topic: forward/attributes
+
+    qos: 1
+  commands:
+    # 下发消息 devices/command/{cfgID}/{devID}/{message_id}
+    publish_topic: devices/command/
+    # 订阅命令响应 devices/command/response/{message_id}
+    subscribe_topic: devices/command/response/+
+    qos: 1
+  events:
+    # 订阅设备事件 devices/event/{cfgID}/{devID}
+    subscribe_topic: devices/event/+/+
+
+    # 发布事件响应：devices/event/response/{device_number}/{message_id}
+    publish_topic: devices/event/response/
+
+    # 消息转发主题 forward/events/{cfgID}/{devID}
+    forward_publish_topic: forward/events
+    qos: 1
+  ota:
+    # ota升级包消息推送：ota/devices/infrom/{cfgID}/{devID}
+    publish_topic: ota/devices/infrom/
+
+    # 订阅ota升级包下载进度：ota/devices/progress/{cfgID}/{devID}
+    subscribe_topic: ota/devices/progress/+/+
+    qos: 1
+
+private_mqtt: # 私有服务器mqtt配置
+  broker: 192.168.6.175:1883 # 默认localhost:1883
+  user: root # 默认root
+  pass: root # 默认root 
+  telemetry:
+    gateway_publish_topic: gateway/telemetry   #后面是气象站网关 的cfgID 和 devID
+    qos: 0
+  attributes:  
+    gateway_publish_topic: gateway/attributes #后面是气象站网关 的cfgID 和 devID
+    qos: 1
+  events:
+    gateway_publish_topic: gateway/event #后面是气象站网关 的cfgID 和 devID
+    qos: 1
+
+automation_task_confg:
+  once_task_limit: 100
+  periodic_task_limit: 100
+
+ota:
+ # 推送设备端的ota升级包下载地址
+  download_address: http://192.168.10.1
+
+classified-protect:
+  # 连续登录失败次数则锁定，-1表示不受限制，可以一直尝试登录
+  login-max-fail-times: -1
+  # 连续登录失败锁定时间（单位：秒），-1表示不锁定
+  login-fail-locked-seconds: 300
+
+# 会话设置
+session:
+  # 会话超时时间（以分钟为单位）
+  timeout: 6000
+  # 可选：是否在每次请求时重置超时时间
+  reset_on_request: false

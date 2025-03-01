@@ -11,7 +11,7 @@ import (
 	model "project/internal/model"
 	service "project/internal/service"
 	config "project/mqtt"
-	"project/mqtt/publish"
+	"project/mqtt_private"
 
 	"github.com/sirupsen/logrus"
 )
@@ -91,7 +91,7 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 		}
 	}
 	//消息转发给第三方
-	err := publish.ForwardTelemetryMessage(*device.DeviceConfigID, device.ID, telemetryBody)
+	err := mqtt_private.ForwardTelemetryMessage(*device.DeviceConfigID, device.ID, telemetryBody)
 	if err != nil {
 		logrus.Error("telemetry forward error:", err.Error())
 	}

@@ -16,6 +16,7 @@ import (
 	"project/mqtt/device"
 	"project/mqtt/publish"
 	"project/mqtt/subscribe"
+	"project/mqtt_private"
 	"project/pkg/utils"
 	"time"
 
@@ -79,14 +80,16 @@ func main() {
 		logrus.Fatalf("Failed to start services: %v", err)
 	}
 	defer manager.Stop()
-	// gin.SetMode(gin.ReleaseMode)
 
 	// TODO: 替换gin默认日志，默认日志不支持日志级别设置
 	host, port := loadConfig()
 	router := router.RouterInit(ConfigPath)
 	srv := initServer(host, port, router)
 
+	// TODO需要先判断内网服务器开关是否开启
 	private_register.PrivateRegisterInit()
+	mqtt_private.MqttPrivateInit()
+
 	// 启动服务
 	go startServer(srv, host, port)
 
