@@ -3,15 +3,15 @@ package mqtt_private
 import (
 	"encoding/json"
 	"fmt"
-	"project/internal/dal"
-	"project/internal/model"
+	"net"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 var PrivateMqttConfig Config
-var gatewayID string
+var gatewayID string //通过初始化函数：GetGatewayID 在程序刚运行的时候获取
 
 func MqttPrivateInit() error {
 	// 初始化配置
@@ -21,7 +21,9 @@ func MqttPrivateInit() error {
 	}
 	createMqttClient()
 
-	GetGatewayID()
+	GetGatewayID() //和data_collect模块商定，网关ID通过网卡获取，那边也是通过getMACAddress 函数获取的地址来注册
+
+	subscribe()
 	return nil
 }
 
@@ -109,19 +111,20 @@ func GetGatewayID() string {
 	if gatewayID != "" {
 		return gatewayID
 	}
-	var cfgID = model.DefaultGatewayCfgID
-	req := model.GetDeviceListByPageReq{
-		DeviceConfigId: &cfgID,
-	}
-	total, list, err := dal.GetDeviceListByPage(&req, model.DefaultTenantId)
+	var err error
+	gatewayID, err = getMACAddress("eth0")
 	if err != nil {
-		logrus.Error("Failed to get device list by cfgID:", model.DefaultGatewayCfgID)
+		logrus.Errorf("GetGatewayID err:%v ", err)
 		return ""
 	}
-	if total == 1 {
-		gatewayID = list[0].ID
-		return gatewayID
+	return gatewayID
+}
+func getMACAddress(interfaceName string) (string, error) {
+	//return "1C:40:E8:11:69:54", nil
+	iface, err := net.InterfaceByName(interfaceName)
+	if err != nil {
+		return "", err
 	}
-	logrus.Error("dev Number error:", model.DefaultGatewayCfgID)
-	return ""
+	macClean := strings.ReplaceAll(strings.ToUpper(iface.HardwareAddr.String()), ":", "")
+	return macClean, nil
 }
