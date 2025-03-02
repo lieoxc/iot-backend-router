@@ -5,6 +5,7 @@ import (
 	initialize "project/initialize"
 	dal "project/internal/dal"
 	"project/internal/model"
+	"project/mqtt_private"
 	"project/pkg/utils"
 
 	"project/internal/private_register"
@@ -64,6 +65,10 @@ func RegisterMessages(payload []byte, topic string) {
 	//TODO 还需要注册到公网服务器
 }
 func registerToPrivateGateway(device model.CreateDeviceReq) {
+	if mqtt_private.PrivateMqttClient.IsConnected() == false {
+		logrus.Error("private mqtt client is not connected")
+		return
+	}
 	if *device.DeviceConfigId == model.DefaultGatewayCfgID {
 		// 网关注册
 		err := private_register.GatewayRegister(*device.DeviceNumber)
