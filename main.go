@@ -9,14 +9,13 @@ import (
 	"os/signal"
 
 	"project/initialize"
+	"project/initialize/croninit"
 	"project/internal/app"
-	"project/internal/private_register"
 	"project/internal/query"
 	"project/mqtt"
 	"project/mqtt/device"
 	"project/mqtt/publish"
 	"project/mqtt/subscribe"
-	"project/mqtt_private"
 	"project/pkg/utils"
 	"time"
 
@@ -60,8 +59,8 @@ func init() {
 	publish.PublishInit()
 
 	utils.GPSInit()
-	//定时任务
-	//croninit.CronInit()
+	//定时清理遥测数据
+	croninit.CronInit()
 }
 
 // @title           ThingsPanel API
@@ -87,8 +86,8 @@ func main() {
 	srv := initServer(host, port, router)
 
 	// TODO需要先判断内网服务器开关是否开启
-	private_register.PrivateRegisterInit()
-	mqtt_private.MqttPrivateInit()
+	//private_register.PrivateRegisterInit()
+	//mqtt_private.MqttPrivateInit()
 
 	// 启动服务
 	go startServer(srv, host, port)

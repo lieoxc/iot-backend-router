@@ -1665,8 +1665,8 @@ INSERT INTO public.sys_dict_language (id, dict_id, language_code, "translation")
 INSERT INTO public.sys_function (id, "name", enable_flag, description, remark) VALUES('function_1', 'use_captcha', 'disable', '验证码登陆', NULL);
 INSERT INTO public.sys_function (id, "name", enable_flag, description, remark) VALUES('function_2', 'enable_reg', 'disable', '租户注册', NULL);
 
-INSERT INTO public.data_policy (id, data_type, retention_days, last_cleanup_time, last_cleanup_data_time, enabled, remark) VALUES('b', '2', 15, '2024-06-05 10:02:00.003', '2024-05-21 10:02:00.003', '1', '');
-INSERT INTO public.data_policy (id, data_type, retention_days, last_cleanup_time, last_cleanup_data_time, enabled, remark) VALUES('a', '1', 15, '2024-06-05 10:02:00.003', '2024-05-21 10:02:00.101', '1', '');
+INSERT INTO public.data_policy (id, data_type, retention_days, last_cleanup_time, last_cleanup_data_time, enabled, remark) VALUES('b', '2', 7, '2024-06-05 10:02:00.003', '2024-05-21 10:02:00.003', '1', '');
+INSERT INTO public.data_policy (id, data_type, retention_days, last_cleanup_time, last_cleanup_data_time, enabled, remark) VALUES('a', '1', 7, '2024-06-05 10:02:00.003', '2024-05-21 10:02:00.101', '1', '');
 
 
 ALTER TABLE "public"."scene_action_info"
