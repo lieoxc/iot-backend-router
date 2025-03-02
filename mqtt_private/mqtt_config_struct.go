@@ -40,7 +40,9 @@ type AttributeConfig struct {
 }
 
 type OTATopicConfig struct {
-	PublishTopic   string `json:"publish_topic"`
-	SubscribeTopic string `json:"subscribe_topic"`
-	QoS            int    `json:"qos"`
+	PublishTopic          string `json:"publish_topic"`
+	SubscribeTopic        string `json:"subscribe_topic"`
+	GatewaySubscribeTopic string `json:"gateway_subscribe_topic"`
+	GatewayPublishTopic   string `json:"gateway_publish_topic"`
+	QoS                   int    `json:"qos"`
 }

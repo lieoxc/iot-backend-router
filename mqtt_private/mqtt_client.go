@@ -63,7 +63,11 @@ func subscribe() error {
 		logrus.Error(err)
 		return err
 	}
-
+	err = SubscribeOTA()
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
 	return nil
 }
 
@@ -83,6 +87,27 @@ func SubscribeCommand() error {
 	logrus.Debug("mqtt private subscribe topic:", topic)
 	qos := byte(PrivateMqttConfig.Commands.QoS)
 	if token := privateMqttClient.Subscribe(topic, qos, commandHandler); token.Wait() && token.Error() != nil {
+		logrus.Error(token.Error())
+		return token.Error()
+	}
+	return nil
+}
+
+// 订阅内网监控站下发的 命令消息，通过网关进行转发
+func SubscribeOTA() error {
+	// 订阅command消息
+	otaHandler := func(_ mqtt.Client, d mqtt.Message) {
+		logrus.Debug("ota message received")
+		err := GatewayDeviceOta(d.Payload(), d.Topic())
+		if err != nil {
+			logrus.Error("private forward comman err:", err)
+		}
+	}
+	// topic: /gateway/ota/cfgID/gatewayID/+
+	topic := PrivateMqttConfig.OTA.GatewaySubscribeTopic + "/" + model.DefaultGatewayCfgID + "/" + gatewayID
+	logrus.Debug("mqtt private subscribe topic:", topic)
+	qos := byte(PrivateMqttConfig.OTA.QoS)
+	if token := privateMqttClient.Subscribe(topic, qos, otaHandler); token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())
 		return token.Error()
 	}

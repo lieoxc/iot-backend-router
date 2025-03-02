@@ -132,3 +132,25 @@ func ForwardEventsMessage(cfgID, devID string, payload []byte) error {
 	}
 	return token.Error()
 }
+
+// 上报ota消息
+func ForwardOtaMessage(cfgID, devID string, payload []byte) error {
+	if privateMqttClient.IsConnected() == false || gatewayID == "" {
+		logrus.Debug("privateMqttClient is not connected")
+		return nil
+	}
+	qos := byte(PrivateMqttConfig.OTA.QoS)
+	pubOtaTopic := PrivateMqttConfig.OTA.GatewayPublishTopic + "/" + model.DefaultGatewayCfgID + "/" + gatewayID
+	// 发布消息
+	jsonData, err := makeGatewayPubPayload(cfgID, devID, payload)
+	if err != nil {
+		logrus.Error(err.Error())
+		return err
+	}
+	logrus.Debugf("privateMqttClient pub topic:%v payload%v", pubOtaTopic, string(jsonData))
+	token := privateMqttClient.Publish(pubOtaTopic, qos, false, jsonData)
+	if token.Wait() && token.Error() != nil {
+		logrus.Error(token.Error())
+	}
+	return token.Error()
+}

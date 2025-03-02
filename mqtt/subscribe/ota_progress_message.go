@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	initialize "project/initialize"
 	"project/internal/query"
+	"project/mqtt_private"
 	"strconv"
 	"strings"
 
@@ -40,6 +41,11 @@ func OtaUpgrade(payload []byte, topic string) {
 	device, err := initialize.GetDeviceCacheById(devID)
 	if err != nil {
 		logrus.Error(err.Error())
+		return
+	}
+	// 判断是否是本地任务, 因为有可能是内网服务器或者公网服务器下发的任务
+	if checkIsLocalTask(devID) == false {
+		mqtt_private.ForwardOtaMessage(cfgID, devID, payload)
 		return
 	}
 
@@ -117,4 +123,21 @@ func OtaUpgrade(payload []byte, topic string) {
 		logrus.Error(err)
 		return
 	}
+}
+
+func checkIsLocalTask(devID string) bool {
+	// 查询对应设备升级信息
+	otaTaskDetail, err := query.OtaUpgradeTaskDetail.
+		Where(query.OtaUpgradeTaskDetail.DeviceID.Eq(devID),
+			query.OtaUpgradeTaskDetail.Status.In(2, 3),
+		).First()
+	if err != nil && otaTaskDetail != nil {
+		logrus.Errorf("未找到对应升级任务")
+		return false
+	}
+	if otaTaskDetail == nil {
+		logrus.Warnf("%v : 未找到对应升级任务", devID)
+		return false
+	}
+	return true
 }

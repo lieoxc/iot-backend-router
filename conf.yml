@@ -111,10 +111,10 @@ mqtt:
     qos: 1
   ota:
     # ota升级包消息推送：ota/devices/infrom/{cfgID}/{devID}
-    publish_topic: ota/devices/infrom/
+    publish_topic: devices/ota/infrom/
 
     # 订阅ota升级包下载进度：ota/devices/progress/{cfgID}/{devID}
-    subscribe_topic: ota/devices/progress/+/+
+    subscribe_topic: devices/ota/progress/+/+
     qos: 1
 
 private_mqtt: # 私有服务器mqtt配置
@@ -129,6 +129,17 @@ private_mqtt: # 私有服务器mqtt配置
     qos: 1
   events:
     gateway_publish_topic: gateway/event #后面是气象站网关 的cfgID 和 devID
+    qos: 1
+  commands:
+  # 下发消息 devices/command/{cfgID}/{devID}/{message_id}
+    publish_topic: devices/command
+
+    gateway_subscribe_topic: gateway/command #后面是气象站网关 的cfgID 和 devID
+    qos: 1
+  ota:
+    gateway_subscribe_topic: gateway/ota/infrom #后面是气象站网关 的cfgID 和 devID
+    gateway_publish_topic: gateway/ota/progress #后面是气象站网关 的cfgID 和 devID
+
     qos: 1
 
 automation_task_confg:
