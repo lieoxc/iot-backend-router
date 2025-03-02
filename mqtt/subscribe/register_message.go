@@ -65,7 +65,7 @@ func RegisterMessages(payload []byte, topic string) {
 	//TODO 还需要注册到公网服务器
 }
 func registerToPrivateGateway(device model.CreateDeviceReq) {
-	if mqtt_private.PrivateMqttClient.IsConnected() == false {
+	if mqtt_private.PrivateMqttClient == nil || mqtt_private.PrivateMqttClient.IsConnected() == false {
 		logrus.Error("private mqtt client is not connected")
 		return
 	}
