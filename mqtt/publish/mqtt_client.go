@@ -161,7 +161,12 @@ func PublishNtpResponseMessage(cfgID string, devID string, err error) error {
 	gpsData, err := utils.GetNtpInfo()
 	if err != nil {
 		logrus.Error("GetNtpInfo Failed:", err)
-		return err
+		// 获取不到GPS信息，返回一个默认消息下去
+		gpsData = utils.GPSData{
+			LocalTimeStr: "",
+			Latitude:     0,
+			Longitude:    0,
+		}
 	}
 
 	ntpData.Longitude = float32(gpsData.Longitude)

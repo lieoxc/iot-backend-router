@@ -145,12 +145,12 @@ func parseGPRMC(sentence string) (GPSData, error) {
 	localTime := utcTime.In(localLocation)
 
 	// 提取纬度和经度
-	latitude, err := convertToDecimalDegrees(fields[3], fields[4])
+	latitude, err := parseCoordinate(fields[3], fields[4], 2)
 	if err != nil {
 		return GPSData{}, fmt.Errorf("纬度解析失败: %v", err)
 	}
 
-	longitude, err := convertToDecimalDegrees(fields[5], fields[6])
+	longitude, err := parseCoordinate(fields[5], fields[6], 3)
 	if err != nil {
 		return GPSData{}, fmt.Errorf("经度解析失败: %v", err)
 	}
@@ -185,29 +185,38 @@ func GetNtpInfo() (GPSData, error) {
 }
 
 // 将 NMEA 格式的经纬度转换为十进制格式
-func convertToDecimalDegrees(value, direction string) (float64, error) {
-	if value == "" || direction == "" {
-		return 0, fmt.Errorf("无效的值或方向: value=%s, direction=%s", value, direction)
+func parseCoordinate(value string, hemisphere string, degLen int) (float64, error) {
+	// 基本格式校验
+	if len(value) < degLen+1 {
+		return 0, fmt.Errorf("invalid coordinate format: %s", value)
 	}
 
-	// 将纬度或经度的 NMEA 格式 (ddmm.mmmm) 转换为十进制格式
-	degrees, err := strconv.ParseFloat(value[:2], 64) // 取前两位作为度数
+	// 分离度数和分钟
+	degStr := value[:degLen]
+	minStr := value[degLen:]
+
+	// 转换为浮点数
+	degrees, err := strconv.ParseFloat(degStr, 32)
 	if err != nil {
-		return 0, fmt.Errorf("无法解析度: %v", err)
+		return 0, fmt.Errorf("invalid degrees: %s", degStr)
 	}
 
-	minutes, err := strconv.ParseFloat(value[2:], 64) // 后面的部分是分
+	minutes, err := strconv.ParseFloat(minStr, 32)
 	if err != nil {
-		return 0, fmt.Errorf("无法解析分: %v", err)
+		return 0, fmt.Errorf("invalid minutes: %s", minStr)
 	}
 
-	// 转换为十进制
-	decimal := degrees + (minutes / 60.0)
+	// 计算最终坐标
+	coord := degrees + minutes/60
 
-	// 根据方向调整符号
-	if direction == "S" || direction == "W" {
-		decimal = -decimal
+	// 处理半球方向
+	switch hemisphere {
+	case "S", "W":
+		coord = -coord
+	case "N", "E":
+	default:
+		return 0, fmt.Errorf("invalid hemisphere: %s", hemisphere)
 	}
 
-	return decimal, nil
+	return float64(coord), nil
 }
