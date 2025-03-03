@@ -20,7 +20,7 @@ import (
 // swagger embed files
 
 func RouterInit(cfgPath string) *gin.Engine {
-	gin.SetMode(gin.ReleaseMode) //开启生产模式
+	//gin.SetMode(gin.ReleaseMode) //开启生产模式
 	gin.DefaultWriter = logrus.StandardLogger().Out
 	gin.DefaultErrorWriter = logrus.StandardLogger().Out
 	router := gin.Default()
