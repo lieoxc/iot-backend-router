@@ -2,7 +2,10 @@ package mqtt_private
 
 import (
 	"fmt"
+	"os/exec"
 	"project/internal/model"
+	"strconv"
+	"strings"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -112,4 +115,84 @@ func SubscribeOTA() error {
 		return token.Error()
 	}
 	return nil
+}
+
+var uciCmd = map[string]string{
+	// "publicEnabled":  "iot_connect.@service[0].publicEnabled",
+	// "publicPort":     "iot_connect.@service[0].publicPort",
+	// "publicAddr":     "iot_connect.@service[0].publicAddr",
+	"privateEnabled": "iot_connect.@service[0].privateEnabled",
+	"privatePort":    "iot_connect.@service[0].privatePort",
+	"privateAddr":    "iot_connect.@service[0].privateAddr",
+}
+
+// 检查是否在页面配置了内网服务器地址，以及开关
+func SwitchCheck() bool {
+	privateEnabled, err := getBoolVaule(uciCmd["privateEnabled"])
+	if err != nil {
+		logrus.Error("get publicEnabled err:", err)
+		return false
+	}
+	privatePort, _ := getIntVaule(uciCmd["privatePort"])
+	privateAddr, _ := getStringVaule(uciCmd["privateAddr"])
+
+	logrus.Debug("privateEnabled:", privateEnabled)
+	logrus.Debug("privatePort:", privatePort)
+	logrus.Debug("privateAddr:", privateAddr)
+
+	return false
+}
+func OScmd(cmdStr string, args ...string) (string, error) {
+	// 要执行的命令
+	cmd := exec.Command(cmdStr, args...)
+	// 获取命令的输出
+	outBytes, err := cmd.CombinedOutput()
+	if err != nil {
+		logrus.Error("Error executing command:", err)
+		return "", err
+	}
+	// 打印输出信息
+	result := string(outBytes)
+	logrus.Debug("run Cmd:", cmd, "Get output:", result)
+	return result, nil
+}
+func getStringVaule(cmdStr string) (string, error) {
+	// uci get openclash.config.config_path
+	result, err := OScmd("uci", "get", cmdStr)
+	if err != nil {
+		return "", err
+	}
+	result = strings.ReplaceAll(result, "\n", "")
+	result = strings.ReplaceAll(result, "\r", "")
+	return result, nil
+}
+
+func getIntVaule(cmdStr string) (int, error) {
+	// uci get openclash.config.config_path
+	result, err := OScmd("uci", "get", cmdStr)
+	if err != nil {
+		return -1, err
+	}
+	result = strings.ReplaceAll(result, "\n", "")
+	result = strings.ReplaceAll(result, "\r", "")
+	// 返回的是默认配置路径，表示之前没有使用此程序进行过配置
+	value, err := strconv.Atoi(result)
+	if err != nil {
+		return -1, err
+	}
+	return value, nil
+}
+
+func getBoolVaule(cmdStr string) (bool, error) {
+	// uci get openclash.config.config_path
+	result, err := OScmd("uci", "get", cmdStr)
+	if err != nil {
+		return false, err
+	}
+	result = strings.ReplaceAll(result, "\n", "")
+	result = strings.ReplaceAll(result, "\r", "")
+	if result == "1" {
+		return true, nil
+	}
+	return false, nil
 }

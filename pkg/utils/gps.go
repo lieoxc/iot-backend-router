@@ -157,7 +157,7 @@ func gpsReadloop(portName string, ctx context.Context) {
 			if strings.HasPrefix(line, "$GPRMC") {
 				data, err := parseGPRMC(line)
 				if err != nil {
-					logrus.Errorf("解析 GPRMC 消息失败: %v", err)
+					//logrus.Errorf("解析 GPRMC 消息失败: %v", err)
 					break
 				}
 				localTime := data.UtcTime.Add(8 * time.Hour)
