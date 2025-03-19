@@ -77,19 +77,17 @@ func AutomateActionDeviceMqttSend(deviceId string, action model.ActionInfo, tena
 
 	case AUTOMATE_ACTION_PARAM_TYPE_CMD, AUTOMATE_ACTION_PARAM_TYPE_COMMAND, AUTOMATE_ACTION_PARAM_TYPE_C_COMMAND:
 		type commandInfo struct {
-			Method string      `json:"method"`
-			Params interface{} `json:"params"`
+			Method string `json:"method"`
+			Params string `json:"params"`
 		}
 		var info commandInfo
 		err := json.Unmarshal([]byte(*action.ActionValue), &info)
 		if err != nil {
 			return executeMsg + "命令下发解析数据失败", err
 		}
-		value, _ := json.Marshal(info.Params)
-		valueStr := string(value)
 		msgReq := model.PutMessageForCommand{
 			DeviceID: deviceId,
-			Value:    &valueStr,
+			Value:    &info.Params,
 			Identify: info.Method,
 		}
 		//msgReq := model.PutMessageForCommand{
