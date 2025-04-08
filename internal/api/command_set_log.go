@@ -49,12 +49,20 @@ func (CommandSetLogApi) CommandPutMessage(c *gin.Context) {
 // /api/v1/command/datas/{id}
 func (CommandSetLogApi) HandleCommandList(c *gin.Context) {
 	id := c.Param("id")
-
-	data, err := service.GroupApp.CommandData.GetCommonList(c, id)
-	if err != nil {
-		c.Error(err)
-		return
+	var data []model.GetCommandListRes
+	var err error
+	if id == "315d9d82-5c76-3197-4eab-8c0a641ccdc9" {
+		data, err = service.GroupApp.CommandData.GetCommonListByCfgID(c, id)
+		if err != nil {
+			c.Error(err)
+			return
+		}
+	} else {
+		data, err = service.GroupApp.CommandData.GetCommonList(c, id)
+		if err != nil {
+			c.Error(err)
+			return
+		}
 	}
-
 	c.Set("data", data)
 }

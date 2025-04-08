@@ -210,6 +210,58 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 	return err
 }
 
+func (*CommandData) GetCommonListByCfgID(ctx context.Context, id string) ([]model.GetCommandListRes, error) {
+	var (
+		list = make([]model.GetCommandListRes, 0)
+	)
+	deviceConfigID := &id
+	if deviceConfigID == nil || common.CheckEmpty(*deviceConfigID) {
+		logrus.Debug("device.device_config_id is empty")
+		return list, nil
+	}
+
+	deviceConfigsInfo, err := dal.DeviceConfigQuery{}.First(ctx, query.DeviceConfig.ID.Eq(*deviceConfigID))
+	if err != nil {
+		logrus.Debug(ctx, "[GetCommonList]device_configs failed:", err)
+		return list, errcode.WithData(errcode.CodeDBError, map[string]interface{}{
+			"sql_error": err.Error(),
+		})
+	}
+
+	if deviceConfigsInfo.DeviceTemplateID == nil || common.CheckEmpty(*deviceConfigsInfo.DeviceTemplateID) {
+		logrus.Debug("device_configs.device_template_id is empty")
+		return list, errcode.WithData(errcode.CodeSystemError, map[string]interface{}{
+			"error": "device_configs.device_template_id is empty",
+		})
+	}
+
+	commandList, err := dal.DeviceModelCommandsQuery{}.Find(ctx, query.DeviceModelCommand.DeviceTemplateID.Eq(*deviceConfigsInfo.DeviceTemplateID))
+	if err != nil {
+		logrus.Error(ctx, "[GetCommonList]device_model_command failed:", err)
+		return list, errcode.WithData(errcode.CodeDBError, map[string]interface{}{
+			"sql_error": err.Error(),
+		})
+	}
+
+	for _, info := range commandList {
+		commandRes := model.GetCommandListRes{
+			Identifier: info.DataIdentifier,
+		}
+		if info.DataName != nil {
+			commandRes.Name = *info.DataName
+		}
+		if info.Param != nil {
+			commandRes.Params = *info.Param
+		}
+		if info.Description != nil {
+			commandRes.Description = *info.Description
+		}
+		list = append(list, commandRes)
+	}
+
+	return list, err
+}
+
 func (*CommandData) GetCommonList(ctx context.Context, id string) ([]model.GetCommandListRes, error) {
 	var (
 		list = make([]model.GetCommandListRes, 0)
