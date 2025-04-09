@@ -44,8 +44,8 @@ func MessagesChanHandler(messages <-chan map[string]interface{}) {
 			break
 		}
 
-		// 如果tskvList有数据，则写入数据库
-		if len(telemetryList) > 0 {
+		// 如果tskvList有数据，则写入数据库; 满了500条才进行写入，避免重启的时候刚好碰到数据库更新
+		if len(telemetryList) > 500 {
 			logrus.Info("批量写入遥测数据表的条数:", len(telemetryList))
 			err := dal.CreateTelemetrDataBatch(telemetryList)
 			if err != nil {
