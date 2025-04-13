@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	initialize "project/initialize"
@@ -45,22 +47,21 @@ func MessagesChanHandler(messages <-chan map[string]interface{}) {
 		}
 
 		// 如果tskvList有数据，则写入数据库; 满了500条才进行写入，避免重启的时候刚好碰到数据库更新
-		if len(telemetryList) > 500 {
-			logrus.Info("批量写入遥测数据表的条数:", len(telemetryList))
-			err := dal.CreateTelemetrDataBatch(telemetryList)
-			if err != nil {
-				logrus.Error(err)
-			}
-
-			// 更新当前值表
-			err = dal.UpdateTelemetrDataBatch(telemetryList)
-			if err != nil {
-				logrus.Error(err)
-			}
-
-			// 清空telemetryList
-			telemetryList = []*model.TelemetryData{}
+		logrus.Info("批量写入遥测数据表的条数:", len(telemetryList))
+		err := dal.CreateTelemetrDataBatch(telemetryList)
+		if err != nil {
+			logrus.Error(err)
 		}
+
+		// 更新当前值表
+		err = dal.UpdateTelemetrDataBatch(telemetryList)
+		if err != nil {
+			logrus.Error(err)
+		}
+
+		// 清空telemetryList
+		telemetryList = []*model.TelemetryData{}
+
 	}
 }
 
@@ -78,7 +79,24 @@ func TelemetryMessages(payload []byte, topic string) {
 	TelemetryMessagesHandle(device, payload, topic)
 }
 
+// 包级别声明全局计数器
+var (
+	telemetryCounters sync.Map // key: device.ID (string), value: *int32
+)
+
 func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic string) {
+	// 处理计数器
+	var countPtr *int32
+	actual, _ := telemetryCounters.LoadOrStore(device.ID, new(int32))
+	countPtr = actual.(*int32)
+	current := atomic.AddInt32(countPtr, 1)
+	shouldSend := false
+	if *device.DeviceConfigID == model.DefaultGatewayCfgID { //气象站
+		shouldSend = current%18 == 0 // 每6次触发一次  180秒保存一条数据
+	} else {
+		shouldSend = current%3 == 0 // 每3次触发一次 180秒保存一条数据
+	}
+
 	// TODO脚本处理
 	if device.DeviceConfigID != nil && *device.DeviceConfigID != "" {
 		newtelemetryBody, err := service.GroupApp.DataScript.Exec(device, "A", telemetryBody, topic)
@@ -114,6 +132,7 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 		triggerParam  []string
 		triggerValues = make(map[string]interface{})
 	)
+
 	for k, v := range reqMap {
 		logrus.Debug(k, "(", v, ")")
 		var d model.TelemetryData
@@ -155,10 +174,13 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 		triggerParam = append(triggerParam, k)
 		triggerValues[k] = v
 		// ts_kv批量入库
-		TelemetryMessagesChan <- map[string]interface{}{
-			"telemetryData": d,
+		if shouldSend {
+			TelemetryMessagesChan <- map[string]interface{}{
+				"telemetryData": d,
+			}
 		}
 	}
+
 	// go 自动化处理
 	go func() {
 		err = service.GroupApp.Execute(device, service.AutomateFromExt{
