@@ -178,3 +178,9 @@ func GetOtaUpgradeTaskDetailListByPage(p *model.GetOTAUpgradeTaskDetailReq) (int
 	return count, detailDataMap, statsResult, err
 
 }
+
+// 删除升级任务详情，带事务
+func DeleteOtaUpgradeTaskDetail(deviceId string, tx *query.QueryTx) error {
+	_, err := tx.OtaUpgradeTaskDetail.Where(query.OtaUpgradeTaskDetail.DeviceID.Eq(deviceId)).Delete()
+	return err
+}
