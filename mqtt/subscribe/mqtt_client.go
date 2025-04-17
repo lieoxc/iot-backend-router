@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"project/initialize"
 	config "project/mqtt"
 	"project/mqtt/publish"
 
@@ -26,7 +25,7 @@ func GenTopic(topic string) string {
 func SubscribeInit() error {
 
 	//实例限流客户端
-	initialize.NewAutomateLimiter()
+	//initialize.NewAutomateLimiter()
 	// 创建mqtt客户端
 	subscribeMqttClient()
 	// 创建消息队列

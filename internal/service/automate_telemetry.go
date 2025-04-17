@@ -21,9 +21,10 @@ import (
 )
 
 type Automate struct {
-	device  *model.Device
-	formExt AutomateFromExt
-	mu      sync.Mutex
+	device          *model.Device
+	formExt         AutomateFromExt
+	mu              sync.Mutex
+	automateLimiter *initialize.AutomateLimiter
 }
 
 var conditionAfterDecoration = []ConditionAfterFunc{
@@ -174,8 +175,11 @@ func (*Automate) containString(slice []string, str string) bool {
 }
 
 // 限流实现 1秒一次 安场景实现
-func (*Automate) LimiterAllow(id string) bool {
-	return initialize.NewAutomateLimiter().GetLimiter(fmt.Sprintf("SceneAutomationId:%s", id)).Allow()
+func (a *Automate) LimiterAllow(id string) bool {
+	if a.automateLimiter == nil {
+		a.automateLimiter = initialize.NewAutomateLimiter(initialize.AutomateRateLimitConfig)
+	}
+	return a.automateLimiter.GetLimiter(fmt.Sprintf("SceneAutomationId:%s", id)).Allow()
 }
 
 // ExecuteRun
