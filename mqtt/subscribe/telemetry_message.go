@@ -92,7 +92,7 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 	current := atomic.AddInt32(countPtr, 1)
 	shouldSend := false
 	if *device.DeviceConfigID == model.DefaultGatewayCfgID { //气象站
-		shouldSend = current%18 == 0 // 每6次触发一次  180秒保存一条数据
+		shouldSend = current%18 == 0 // 每18次触发一次  180秒保存一条数据
 	} else {
 		shouldSend = current%3 == 0 // 每3次触发一次 180秒保存一条数据
 	}

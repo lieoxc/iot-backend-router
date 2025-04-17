@@ -205,18 +205,7 @@ func (*Device) UpdateDevice(req model.UpdateDeviceReq, _ *utils.UserClaims) (*mo
 			"sql_error": err.Error(),
 		})
 	}
-
-	// device.ID = req.Id
-	// device.Name = req.Name
-
 	t := time.Now().UTC()
-
-	// if req.Voucher != nil && *req.Voucher != "" {
-	// 	device.Voucher = *req.Voucher
-	// }
-	// 不能更新租户id
-	//device.TenantID = claims.TenantID
-	//device.UpdateAt = &t
 	condsMap, err := StructToMapAndVerifyJson(req, "additional_info", "protocol_config")
 	if err != nil {
 		return nil, errcode.WithData(errcode.CodeParamError, map[string]interface{}{

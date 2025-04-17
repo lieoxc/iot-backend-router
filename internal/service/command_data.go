@@ -184,7 +184,7 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 	go func() {
 		select {
 		case response := <-config.MqttDirectResponseFuncMap[messageID]:
-			fmt.Println("接收到数据:", response)
+			logrus.Debug("接收到数据:", response)
 			if len(fn) > 0 {
 				_ = fn[0](response)
 			}
@@ -192,7 +192,7 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 			close(config.MqttDirectResponseFuncMap[messageID])
 			delete(config.MqttDirectResponseFuncMap, messageID)
 		case <-time.After(5 * time.Minute): // 设置超时时间为 5 分钟
-			fmt.Println("超时，关闭通道")
+			logrus.Debug("超时，关闭通道")
 			//log.CommandResultUpdate(context.Background(), logInfo.ID, model.MqttResponse{
 			//	Result:  1,
 			//	Errcode: "timeout",

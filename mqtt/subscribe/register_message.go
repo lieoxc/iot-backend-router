@@ -35,7 +35,15 @@ func RegisterMessages(payload []byte, topic string) {
 	}
 	device, err := initialize.GetDeviceCacheById(regMsg.Mac)
 	if device != nil && device.ID != "" {
-		logrus.Warnf("deviceID:%s is exist,do not create.", regMsg.Mac)
+		logrus.Warnf("deviceID:%s is exist, now update devicename.", regMsg.Mac, regMsg.Name)
+		if regMsg.Name != "" {
+			var claims utils.UserClaims
+			claims.TenantID = model.DefaultTenantId
+			var updateDevReq model.UpdateDeviceReq
+			updateDevReq.Id = regMsg.Mac
+			updateDevReq.Name = &regMsg.Name
+			service.GroupApp.Device.UpdateDevice(updateDevReq, &claims)
+		}
 		return
 	}
 	var createDevReq model.CreateDeviceReq
