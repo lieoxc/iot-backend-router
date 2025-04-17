@@ -94,7 +94,7 @@ mqtt:
     # 下发消息 devices/command/{cfgID}/{devID}/{message_id}
     publish_topic: devices/command/
     # 订阅命令响应 devices/command/response/{message_id}
-    subscribe_topic: devices/command/response/+
+    subscribe_topic: devices/command/response/+/+/+
     qos: 1
   events:
     # 订阅设备事件 devices/event/{cfgID}/{devID}

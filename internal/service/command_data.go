@@ -191,7 +191,7 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 			dal.CommandSetLogsQuery{}.CommandResultUpdate(context.Background(), logInfo.ID, response)
 			close(config.MqttDirectResponseFuncMap[messageID])
 			delete(config.MqttDirectResponseFuncMap, messageID)
-		case <-time.After(6 * time.Minute): // 设置超时时间为 3 分钟
+		case <-time.After(5 * time.Minute): // 设置超时时间为 5 分钟
 			fmt.Println("超时，关闭通道")
 			//log.CommandResultUpdate(context.Background(), logInfo.ID, model.MqttResponse{
 			//	Result:  1,
@@ -200,6 +200,11 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 			//	Ts:      time.Now().Unix(),
 			//	Method:  param.Identify,
 			//})
+			response := model.MqttResponse{
+				Result:  -1,
+				Message: "设备无响应",
+			}
+			dal.CommandSetLogsQuery{}.CommandResultTimeout(context.Background(), logInfo.ID, response)
 			close(config.MqttDirectResponseFuncMap[messageID])
 			delete(config.MqttDirectResponseFuncMap, messageID)
 
