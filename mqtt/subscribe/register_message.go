@@ -18,9 +18,10 @@ var AccessWay = "A"
 var GlobalGatewayID = ""
 
 type RegisterSubSt struct {
-	CfgID string `json:"cfgID"`
-	Mac   string `json:"mac"`
-	Name  string `json:"name,omitempty"`
+	CfgID   string `json:"cfgID"`
+	Mac     string `json:"mac"`
+	Name    string `json:"name,omitempty"`
+	Version string `json:"version,omitempty"`
 }
 
 func RegisterMessages(payload []byte, topic string) {
@@ -42,6 +43,9 @@ func RegisterMessages(payload []byte, topic string) {
 			var updateDevReq model.UpdateDeviceReq
 			updateDevReq.Id = regMsg.Mac
 			updateDevReq.Name = &regMsg.Name
+			if regMsg.Version != "" {
+				updateDevReq.CurrentVersion = &regMsg.Version
+			}
 			service.GroupApp.Device.UpdateDevice(updateDevReq, &claims)
 		}
 		return
