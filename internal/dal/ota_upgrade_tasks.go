@@ -184,3 +184,9 @@ func DeleteOtaUpgradeTaskDetail(deviceId string, tx *query.QueryTx) error {
 	_, err := tx.OtaUpgradeTaskDetail.Where(query.OtaUpgradeTaskDetail.DeviceID.Eq(deviceId)).Delete()
 	return err
 }
+
+// 删除升级任务详情，带事务
+func QueryRunningUpgradeTaskDetail() ([]*model.OtaUpgradeTaskDetail, error) {
+	otaTaskDetail := query.OtaUpgradeTaskDetail
+	return otaTaskDetail.Where(query.OtaUpgradeTaskDetail.Status.In(1, 2, 3)).Find()
+}

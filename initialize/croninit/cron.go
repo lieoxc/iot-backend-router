@@ -40,7 +40,10 @@ func CronInit() {
 			fmt.Printf("发送心跳包失败: %v\n", err)
 		}
 	})
-
+	c.AddFunc("0 */10 * * * *", func() {
+		logrus.Debug("检查ota超时任务：")
+		service.GroupApp.HandlerOtaTaskTimeout()
+	})
 	c.Start()
 }
 

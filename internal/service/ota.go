@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -330,4 +331,31 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 	}
 
 	return nil
+}
+
+var otaTimeOutDesc = "设备长时间无响应"
+
+func (*OTA) HandlerOtaTaskTimeout() {
+	//1. 获取所有正在运行的升级任务
+	details, err := dal.QueryRunningUpgradeTaskDetail()
+	if err != nil && err != sql.ErrNoRows {
+		logrus.Error("QueryRunningUpgradeTaskDetail failed")
+	}
+	// 获取当前时间
+	now := time.Now().UTC()
+	for _, detail := range details {
+		// 获取设备信息
+		timeDiff := now.Sub(*detail.UpdatedAt)
+		logrus.Debugf("device: %v, id: %v, timeDiff: %v", detail.DeviceID, detail.ID, timeDiff)
+		if timeDiff > 30*time.Minute {
+			// 修改设备升级任务信息
+			detail.Status = 5
+			detail.StatusDescription = &otaTimeOutDesc
+			detail.UpdatedAt = &now
+			_, err := query.OtaUpgradeTaskDetail.Updates(detail)
+			if err != nil {
+				logrus.Error("UpdateOtaUpgradeTaskDetail failed")
+			}
+		}
+	}
 }
