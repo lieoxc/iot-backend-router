@@ -41,7 +41,7 @@ func UpdateModemInfoToRedis() {
 		"modelVersion", globalModemData.modelVersion, "network", globalModemData.network)
 }
 func modemInfoLoop(portName string, ctx context.Context) {
-	ticker := time.NewTicker(3 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 	for {
 		select {
 		case <-ctx.Done():
@@ -71,7 +71,7 @@ func query4GModemInfo(portName string) {
 			logrus.Debugf("%s 查询失败: %v", name, err)
 			continue
 		}
-		logrus.Debugf("resp:", resp)
+		logrus.Debugf("resp: %s", resp)
 		result, err := cmd.Handler(resp)
 		if err != nil {
 			logrus.Debugf("%s 解析失败: %v", name, err)
