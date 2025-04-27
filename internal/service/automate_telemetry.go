@@ -84,7 +84,7 @@ func (a *Automate) Execute(deviceInfo *model.Device, fromExt AutomateFromExt) er
 	a.device = deviceInfo
 	a.formExt = fromExt
 	//
-	logrus.Debugf("conf:%v dev:%s Execute", deviceInfo.DeviceConfigID, deviceInfo.DeviceConfigID)
+	logrus.Debugf("Automate Run, devName:%v TriggerParamType:%s", deviceInfo.Name, fromExt.TriggerParamType)
 	//单类设备t
 	if deviceInfo.DeviceConfigID != nil {
 		deviceConfigId := *deviceInfo.DeviceConfigID
@@ -99,7 +99,7 @@ func (a *Automate) Execute(deviceInfo *model.Device, fromExt AutomateFromExt) er
 
 func (a *Automate) telExecute(deviceId, deviceConfigId string, fromExt AutomateFromExt) error {
 	info, resultInt, err := initialize.NewAutomateCache().GetCacheByDeviceId(deviceId, deviceConfigId)
-	logrus.Debugf("自动化执行开始: info:%#v, resultInt:%d", info, resultInt)
+	logrus.Debugf("Automate run: info:%#v, resultInt:%d", info, resultInt)
 	if err != nil {
 		return pkgerrors.Wrap(err, "查询缓存信息失败")
 	}
@@ -118,10 +118,11 @@ func (a *Automate) telExecute(deviceId, deviceConfigId string, fromExt AutomateF
 			return nil
 		}
 	}
-	logrus.Debugf("自动化执行开始2: info:%#v, resultInt:%d", info, resultInt)
+	logrus.Debugf("Automate run before Filter: info:%#v, resultInt:%d", info, resultInt)
 	//过滤自动化触发条件
 	info = a.AutomateFilter(info, fromExt)
-	logrus.Debugf("自动化执行开始3: info:%#v, resultInt:%v", info, fromExt)
+
+	logrus.Debugf("Automate run after Filter: info:%#v, resultInt:%v", info, fromExt)
 	//执行自动化
 	return a.ExecuteRun(info)
 }
@@ -136,7 +137,7 @@ func (a *Automate) AutomateFilter(info initialize.AutomateExecteParams, fromExt 
 			}
 			condTriggerParamType := strings.ToUpper(*cond.TriggerParamType)
 			switch fromExt.TriggerParamType {
-			case model.TRIGGER_PARAM_TYPE_TEL:
+			case model.TRIGGER_PARAM_TYPE_TEL: //遥测触发
 				if condTriggerParamType == model.TRIGGER_PARAM_TYPE_TEL || condTriggerParamType == model.TRIGGER_PARAM_TYPE_TELEMETRY {
 					if a.containString(fromExt.TriggerParam, *cond.TriggerParam) {
 						isExists = true
@@ -166,7 +167,7 @@ func (a *Automate) AutomateFilter(info initialize.AutomateExecteParams, fromExt 
 
 func (*Automate) containString(slice []string, str string) bool {
 	for _, v := range slice {
-		logrus.Info(v, str)
+		logrus.Info(v, " : ", str)
 		if v == str {
 			return true
 		}
@@ -356,7 +357,7 @@ func (a *Automate) AutomateConditionCheckWithGroupOne(cond model.DeviceTriggerCo
 	switch cond.TriggerConditionType {
 	case model.DEVICE_TRIGGER_CONDITION_TYPE_TIME:
 		return a.automateConditionCheckWithTime(cond), ""
-	case model.DEVICE_TRIGGER_CONDITION_TYPE_ONE, model.DEVICE_TRIGGER_CONDITION_TYPE_MULTIPLE:
+	case model.DEVICE_TRIGGER_CONDITION_TYPE_ONE, model.DEVICE_TRIGGER_CONDITION_TYPE_MULTIPLE: //单类或者单个设备
 		return a.automateConditionCheckWithDevice(cond, deviceId)
 	default:
 		return true, ""
@@ -501,7 +502,8 @@ func (a *Automate) automateConditionCheckWithDevice(cond model.DeviceTriggerCond
 			return true, result
 		}
 	}
-	logrus.Debug("automateConditionCheckByOperator:设备条件验证参数...", triggerOperator, triggerValue, actualValue)
+	logrus.Debugf("automateConditionCheckByOperator:设备条件验证参数 triggerOperator:%v triggerValue%v actualValue:%v",
+		triggerOperator, triggerValue, actualValue)
 	ok := a.automateConditionCheckByOperator(triggerOperator, triggerValue, actualValue)
 	logrus.Debugf("比较结果:%t", ok)
 	return ok, result

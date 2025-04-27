@@ -46,11 +46,11 @@ func AutomateActionDeviceMqttSend(deviceId string, action model.ActionInfo, tena
 
 	var userId string
 	userId, _ = dal.GetUserIdBYTenantID(tenantID)
-	logrus.Debug("AutomateActionDeviceMqttSend:", tenantID, ", userId:", userId)
+	logrus.Debug("AutomateActionDeviceMqttSend:", tenantID, ", userId:", userId, "ActionParamType", *action.ActionParamType)
 	operationType := strconv.Itoa(constant.Auto)
 	//var valueMap = make(map[string]string)
 	switch *action.ActionParamType {
-	case AUTOMATE_ACTION_PARAM_TYPE_TEL, AUTOMATE_ACTION_PARAM_TYPE_TELEMETRY, AUTOMATE_ACTION_PARAM_TYPE_C_TELEMETRY:
+	case AUTOMATE_ACTION_PARAM_TYPE_TEL, AUTOMATE_ACTION_PARAM_TYPE_TELEMETRY, AUTOMATE_ACTION_PARAM_TYPE_C_TELEMETRY: //遥测下发
 		msgReq := model.PutMessage{
 			DeviceID: deviceId,
 		}

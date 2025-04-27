@@ -226,8 +226,8 @@ func SubscribeAttribute() error {
 	deviceAttributeHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
 		logrus.Debug("attribute message:", string(d.Payload()))
-		deviceNumber, err := DeviceAttributeReport(d.Payload(), d.Topic())
-		logrus.Debug("响应设备属性上报", deviceNumber, err)
+		_, err := DeviceAttributeReport(d.Payload(), d.Topic())
+		//logrus.Debug("响应设备属性上报", deviceNumber, err)
 		if err != nil {
 			logrus.Error(err)
 		}

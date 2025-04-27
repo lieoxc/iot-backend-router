@@ -140,15 +140,15 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 	}
 
 	// 执行数据脚本
-	if deviceInfo.DeviceConfigID != nil && *deviceInfo.DeviceConfigID != "" {
-		if newPayload, err := GroupApp.DataScript.Exec(deviceInfo, "E", payload, topic); err != nil {
-			return errcode.WithData(errcode.CodeSystemError, map[string]interface{}{
-				"error": err.Error(),
-			})
-		} else if newPayload != nil {
-			payload = newPayload
-		}
-	}
+	// if deviceInfo.DeviceConfigID != nil && *deviceInfo.DeviceConfigID != "" {
+	// 	if newPayload, err := GroupApp.DataScript.Exec(deviceInfo, "E", payload, topic); err != nil {
+	// 		return errcode.WithData(errcode.CodeSystemError, map[string]interface{}{
+	// 			"error": err.Error(),
+	// 		})
+	// 	} else if newPayload != nil {
+	// 		payload = newPayload
+	// 	}
+	// }
 
 	// 发布消息
 	err = publish.PublishCommandMessage(topic, payload)
@@ -191,7 +191,7 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 			dal.CommandSetLogsQuery{}.CommandResultUpdate(context.Background(), logInfo.ID, response)
 			close(config.MqttDirectResponseFuncMap[messageID])
 			delete(config.MqttDirectResponseFuncMap, messageID)
-		case <-time.After(5 * time.Minute): // 设置超时时间为 5 分钟
+		case <-time.After(1 * time.Minute): // 设置超时时间为 1 分钟
 			logrus.Debug("超时，关闭通道")
 			//log.CommandResultUpdate(context.Background(), logInfo.ID, model.MqttResponse{
 			//	Result:  1,

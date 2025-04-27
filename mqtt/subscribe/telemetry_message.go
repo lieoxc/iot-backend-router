@@ -67,7 +67,7 @@ func MessagesChanHandler(messages <-chan map[string]interface{}) {
 
 // 处理消息
 func TelemetryMessages(payload []byte, topic string) {
-	logrus.Debugln(string(payload))
+	logrus.Debugf("telemetry topic:%s \n payload:%s", topic, string(payload))
 	// 验证消息有效性
 	datas := strings.Split(string(topic), "/")
 	logrus.Debugln(datas[2], " mac:", datas[3])
@@ -98,16 +98,16 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 	}
 
 	// TODO脚本处理
-	if device.DeviceConfigID != nil && *device.DeviceConfigID != "" {
-		newtelemetryBody, err := service.GroupApp.DataScript.Exec(device, "A", telemetryBody, topic)
-		if err != nil {
-			logrus.Error(err.Error())
-			return
-		}
-		if newtelemetryBody != nil {
-			telemetryBody = newtelemetryBody
-		}
-	}
+	// if device.DeviceConfigID != nil && *device.DeviceConfigID != "" {
+	// 	newtelemetryBody, err := service.GroupApp.DataScript.Exec(device, "A", telemetryBody, topic)
+	// 	if err != nil {
+	// 		logrus.Error(err.Error())
+	// 		return
+	// 	}
+	// 	if newtelemetryBody != nil {
+	// 		telemetryBody = newtelemetryBody
+	// 	}
+	// }
 	//消息转发给第三方
 	err := mqtt_private.ForwardTelemetryMessage(*device.DeviceConfigID, device.ID, telemetryBody)
 	if err != nil {
@@ -127,14 +127,14 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 
 	ts := time.Now().UTC()
 	milliseconds := ts.UnixNano() / int64(time.Millisecond)
-	logrus.Debug(device, ts)
+	//logrus.Debug(device, ts)
 	var (
 		triggerParam  []string
 		triggerValues = make(map[string]interface{})
 	)
 
 	for k, v := range reqMap {
-		logrus.Debug(k, "(", v, ")")
+		//logrus.Debug(k, "(", v, ")")
 		var d model.TelemetryData
 		switch value := v.(type) {
 		case string:

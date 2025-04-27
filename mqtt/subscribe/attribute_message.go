@@ -6,7 +6,6 @@ import (
 	initialize "project/initialize"
 	dal "project/internal/dal"
 	"project/internal/model"
-	service "project/internal/service"
 	config "project/mqtt"
 	"project/mqtt_private"
 	"strings"
@@ -32,7 +31,7 @@ func DeviceAttributeReport(payload []byte, topic string) (string, error) {
 		devID = topicList[3]
 	}
 
-	logrus.Debug("attribute payload:", string(payload))
+	//logrus.Debug("attribute payload:", string(payload))
 	// 处理消息
 	device, err := initialize.GetDeviceCacheById(devID)
 	if err != nil {
@@ -69,30 +68,30 @@ func DeviceAttributeReport(payload []byte, topic string) (string, error) {
 // @return err error
 func deviceAttributesHandle(device *model.Device, reqMap map[string]interface{}, topic string) error {
 	// TODO脚本处理
-	if device.DeviceConfigID != nil && *device.DeviceConfigID != "" {
-		scriptType := "C"
-		attributesBody, _ := json.Marshal(reqMap)
-		newAttributesBody, err := service.GroupApp.DataScript.Exec(device, scriptType, attributesBody, topic)
-		if err != nil {
-			logrus.Error("Error in attribute script processing: ", err.Error())
-		}
-		if newAttributesBody != nil {
-			err = json.Unmarshal(newAttributesBody, &reqMap)
-			if err != nil {
-				logrus.Error("Error in attribute script processing: ", err.Error())
-			}
-		}
-	}
+	// if device.DeviceConfigID != nil && *device.DeviceConfigID != "" {
+	// 	scriptType := "C"
+	// 	attributesBody, _ := json.Marshal(reqMap)
+	// 	newAttributesBody, err := service.GroupApp.DataScript.Exec(device, scriptType, attributesBody, topic)
+	// 	if err != nil {
+	// 		logrus.Error("Error in attribute script processing: ", err.Error())
+	// 	}
+	// 	if newAttributesBody != nil {
+	// 		err = json.Unmarshal(newAttributesBody, &reqMap)
+	// 		if err != nil {
+	// 			logrus.Error("Error in attribute script processing: ", err.Error())
+	// 		}
+	// 	}
+	// }
 
 	//属性保存
 	ts := time.Now().UTC()
-	logrus.Debug(device, ts)
+	//logrus.Debug(device, ts)
 	var (
 		triggerParam  []string
 		triggerValues = make(map[string]interface{})
 	)
 	for k, v := range reqMap {
-		logrus.Debug(k, "(", v, ")")
+		//logrus.Debug(k, "(", v, ")")
 
 		var d model.AttributeData
 		switch value := v.(type) {
@@ -132,7 +131,7 @@ func deviceAttributesHandle(device *model.Device, reqMap map[string]interface{},
 		}
 		triggerParam = append(triggerParam, k)
 		triggerValues[k] = v
-		logrus.Debug("attribute data:", d)
+		//logrus.Debug("attribute data:", d)
 		_, err := dal.UpdateAttributeData(&d)
 		if err != nil {
 			logrus.Error(err.Error())
@@ -140,17 +139,17 @@ func deviceAttributesHandle(device *model.Device, reqMap map[string]interface{},
 		}
 	}
 	//自动化处理
-	go func() {
+	// go func() {
 
-		err := service.GroupApp.Execute(device, service.AutomateFromExt{
-			TriggerParam:     triggerParam,
-			TriggerValues:    triggerValues,
-			TriggerParamType: model.TRIGGER_PARAM_TYPE_ATTR,
-		})
-		if err != nil {
-			logrus.Error("自动化执行失败, err: ", err)
-		}
-	}()
+	// 	err := service.GroupApp.Execute(device, service.AutomateFromExt{
+	// 		TriggerParam:     triggerParam,
+	// 		TriggerValues:    triggerValues,
+	// 		TriggerParamType: model.TRIGGER_PARAM_TYPE_ATTR,
+	// 	})
+	// 	if err != nil {
+	// 		logrus.Error("自动化执行失败, err: ", err)
+	// 	}
+	// }()
 	return nil
 }
 

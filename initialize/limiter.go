@@ -49,5 +49,5 @@ func DefaultConfig(key string) (rate.Limit, int) {
 	return rate.Limit(1.0 / 3.0), 10 // 默认值：3秒1次，突发10
 }
 func AutomateRateLimitConfig(key string) (rate.Limit, int) {
-	return rate.Limit(1.0 / 60.0), 1 // 默认值：60秒1次，突发1
+	return rate.Limit(1.0 / 30.0), 1 // 默认值：60秒1次，突发1
 }
