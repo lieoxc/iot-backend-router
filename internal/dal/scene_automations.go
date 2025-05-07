@@ -210,6 +210,18 @@ func CheckSceneAutomationHasClose(id string) bool {
 	return index == 1
 }
 
+// 检查是否是为防风策略 ； description = "防风策略"
+func CheckWindProtection(id string) bool {
+	index, _ := query.SceneAutomation.Where(query.SceneAutomation.ID.Eq(id), query.SceneAutomation.Description.Eq("防风策略")).Count()
+	return index == 1
+}
+
+// 检查是否是为解除防风策略 ； description = "解除防风策略"
+func CheckWindProtectionLeave(id string) bool {
+	index, _ := query.SceneAutomation.Where(query.SceneAutomation.ID.Eq(id), query.SceneAutomation.Description.Eq("解除防风策略")).Count()
+	return index == 1
+}
+
 func GetSceneAutomationTenantID(ctx context.Context, scene_id string) string {
 	//todo 增加缓存
 	var tenantID string

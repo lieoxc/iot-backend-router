@@ -70,7 +70,6 @@ func TelemetryMessages(payload []byte, topic string) {
 	logrus.Debugf("telemetry topic:%s \n payload:%s", topic, string(payload))
 	// 验证消息有效性
 	datas := strings.Split(string(topic), "/")
-	logrus.Debugln(datas[2], " mac:", datas[3])
 	device, err := initialize.GetDeviceCacheById(datas[3])
 	if err != nil {
 		logrus.Error(err.Error())
@@ -89,7 +88,7 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 	var countPtr *int32
 	actual, _ := telemetryCounters.LoadOrStore(device.ID, new(int32))
 	countPtr = actual.(*int32)
-	current := atomic.AddInt32(countPtr, 1)
+	current := atomic.AddInt32(countPtr, 0)
 	shouldSend := false
 	if *device.DeviceConfigID == model.DefaultGatewayCfgID { //气象站
 		shouldSend = current%18 == 0 // 每18次触发一次  180秒保存一条数据

@@ -69,6 +69,7 @@ func checkRedisClient(redisClient *redis.Client) error {
 		logrus.Debug("连接redis成完成...")
 		return nil
 	}
+
 }
 
 func loadConfig() (*RedisConfig, error) {
