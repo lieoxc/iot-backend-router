@@ -143,8 +143,8 @@ func syncSystemTime(newTime time.Time) error {
 	}
 
 	// 同步硬件时钟
-	hwClockCmd := "hwclock --systohc"
-	_, err = runTerminalCmd(hwClockCmd, false, true)
+	// hwClockCmd := "hwclock --systohc"
+	// _, err = runTerminalCmd(hwClockCmd, false, true)
 	return err
 }
 
