@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os/exec"
 	"project/pkg/global"
 	"strconv"
 	"strings"
@@ -86,6 +87,8 @@ func gpsReadloop(portName string, ctx context.Context) {
 
 	reader := bufio.NewReader(port)
 	count := 0
+	lastSyncTime := time.Now()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -102,13 +105,23 @@ func gpsReadloop(portName string, ctx context.Context) {
 			if strings.HasPrefix(line, "$GPRMC") {
 				data, err := parseGPRMC(line)
 				if err != nil {
-					//logrus.Errorf("解析 GPRMC 消息失败: %v", err)
 					break
 				}
 				localTime := data.UtcTime.Add(8 * time.Hour)
 				data.LocalTimeStr = localTime.Format("2006-01-02 15:04:05")
 				updateGlobalData(data)
-				// 定期跟新到其他模块
+
+				// 检查是否需要时间同步（每24小时同步一次）
+				if time.Since(lastSyncTime) >= 24*time.Hour {
+					if err := syncSystemTime(localTime); err != nil {
+						logrus.Errorf("系统时间同步失败: %v", err)
+					} else {
+						logrus.Infof("系统时间同步成功: %s", localTime.Format("2006-01-02 15:04:05"))
+						lastSyncTime = time.Now()
+					}
+				}
+
+				// 定期更新到其他模块
 				count++
 				if count%100 == 0 {
 					UpdateToRedis(data)
@@ -118,6 +131,33 @@ func gpsReadloop(portName string, ctx context.Context) {
 			}
 		}
 	}
+}
+
+// syncSystemTime 同步系统时间
+func syncSystemTime(newTime time.Time) error {
+	// 在 Linux 系统上使用 date 命令设置时间
+	cmd := fmt.Sprintf("date -s \"%s\"", newTime.Format("2006-01-02 15:04:05"))
+	_, err := runTerminalCmd(cmd, false, true)
+	if err != nil {
+		return err
+	}
+
+	// 同步硬件时钟
+	hwClockCmd := "hwclock --systohc"
+	_, err = runTerminalCmd(hwClockCmd, false, true)
+	return err
+}
+
+// runTerminalCmd 执行终端命令
+func runTerminalCmd(cmd string, isBackground bool, requireUserApproval bool) (string, error) {
+	ctx := context.Background()
+	execCmd := exec.CommandContext(ctx, "sh", "-c", cmd)
+
+	output, err := execCmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("执行命令失败: %v, 输出: %s", err, string(output))
+	}
+	return string(output), nil
 }
 
 // 解析 GPRMC 消息以获取 UTC 时间和经纬度
