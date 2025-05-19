@@ -65,21 +65,21 @@ func query4GModemInfo(portName string) {
 		"网络制式": {"AT+COPS?\r\n", ParseOperator, UpdateNetwork},
 	}
 	for name, cmd := range commands {
-		logrus.Debugf("query: %s...", name)
+		//logrus.Debugf("query: %s...", name)
 		resp, err := SendATCommand(portName, cmd.command)
 		if err != nil {
 			logrus.Debugf("%s 查询失败: %v", name, err)
 			continue
 		}
-		logrus.Debugf("resp: %s", resp)
+		//logrus.Debugf("resp: %s", resp)
 		result, err := cmd.Handler(resp)
 		if err != nil {
-			logrus.Debugf("%s 解析失败: %v", name, err)
+			//logrus.Debugf("%s 解析失败: %v", name, err)
 			continue
 		}
-		logrus.Debugf("update: %s", result)
+		//logrus.Debugf("update: %s", result)
 		cmd.Update(result)
-		logrus.Debugf("end --: %s", result)
+		//logrus.Debugf("end --: %s", result)
 
 	}
 	UpdateModemInfoToRedis()

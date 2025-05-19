@@ -45,8 +45,33 @@ func GetCurrentGPSData() GPSData {
 }
 
 func UpdateToRedis(data GPSData) {
-	global.REDIS.HSet(context.Background(), "gps_data", "latitude", data.Latitude, "longitude", data.Longitude, "local_time_str", data.LocalTimeStr)
+	ctx := context.Background()
+	err := global.REDIS.HSet(ctx, "gps_data", "latitude", data.Latitude, "longitude", data.Longitude, "local_time_str", data.LocalTimeStr).Err()
+	if err != nil {
+		logrus.Errorf("Redis HSet 失败: %v", err)
+		return
+	}
+
+	// 验证数据是否写入成功
+	exists, err := global.REDIS.Exists(ctx, "gps_data").Result()
+	if err != nil {
+		logrus.Errorf("Redis Exists 检查失败: %v", err)
+		return
+	}
+	if exists == 0 {
+		logrus.Error("Redis 数据写入验证失败: key 不存在")
+		return
+	}
+
+	// 获取当前数据库编号
+	db, err := global.REDIS.ConfigGet(ctx, "databases").Result()
+	if err != nil {
+		logrus.Errorf("获取 Redis 数据库配置失败: %v", err)
+		return
+	}
+	logrus.Infof("当前 Redis 数据库配置: %v", db)
 }
+
 func GetNtpInfo() (GPSData, error) {
 	// 开始读取 GPS 数据
 	data, err := readGPSData()

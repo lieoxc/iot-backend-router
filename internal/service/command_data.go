@@ -96,6 +96,9 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 			})
 		}
 		payloadMap["params"] = params
+		if param.PolicyRunID > 0 { // 增加一个PolicyRunID字段
+			payloadMap["policyRunID"] = param.PolicyRunID
+		}
 	}
 
 	// 处理网关和子设备
@@ -189,8 +192,10 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 				_ = fn[0](response)
 			}
 			dal.CommandSetLogsQuery{}.CommandResultUpdate(context.Background(), logInfo.ID, response)
-			close(config.MqttDirectResponseFuncMap[messageID])
-			delete(config.MqttDirectResponseFuncMap, messageID)
+			if ch, exists := config.MqttDirectResponseFuncMap[messageID]; exists && ch != nil {
+				close(ch)
+				delete(config.MqttDirectResponseFuncMap, messageID)
+			}
 		case <-time.After(1 * time.Minute): // 设置超时时间为 1 分钟
 			logrus.Debug("超时，关闭通道")
 			//log.CommandResultUpdate(context.Background(), logInfo.ID, model.MqttResponse{
@@ -205,8 +210,10 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 				Message: "设备无响应",
 			}
 			dal.CommandSetLogsQuery{}.CommandResultTimeout(context.Background(), logInfo.ID, response)
-			close(config.MqttDirectResponseFuncMap[messageID])
-			delete(config.MqttDirectResponseFuncMap, messageID)
+			if ch, exists := config.MqttDirectResponseFuncMap[messageID]; exists && ch != nil {
+				close(ch)
+				delete(config.MqttDirectResponseFuncMap, messageID)
+			}
 
 			return
 		}

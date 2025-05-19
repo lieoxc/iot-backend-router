@@ -9,6 +9,7 @@ import (
 	model "project/internal/model"
 	"project/pkg/constant"
 	"strconv"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -50,31 +51,6 @@ func AutomateActionDeviceMqttSend(deviceId string, action model.ActionInfo, tena
 	operationType := strconv.Itoa(constant.Auto)
 	//var valueMap = make(map[string]string)
 	switch *action.ActionParamType {
-	case AUTOMATE_ACTION_PARAM_TYPE_TEL, AUTOMATE_ACTION_PARAM_TYPE_TELEMETRY, AUTOMATE_ACTION_PARAM_TYPE_C_TELEMETRY: //遥测下发
-		msgReq := model.PutMessage{
-			DeviceID: deviceId,
-		}
-		//valueMap = map[string]string{
-		//	*action.ActionParam: *action.ActionValue,
-		//}
-		//valueStr, _ := json.Marshal(valueMap)
-		//msgReq.Value = string(valueStr)
-		msgReq.Value = *action.ActionValue
-		logrus.Warning(msgReq)
-		return executeMsg + fmt.Sprintf(" 遥测指令:%s", msgReq.Value), GroupApp.TelemetryData.TelemetryPutMessage(ctx, userId, &msgReq, operationType)
-
-	case AUTOMATE_ACTION_PARAM_TYPE_ATTR, AUTOMATE_ACTION_PARAM_TYPE_ATTRIBUTES, AUTOMATE_ACTION_PARAM_TYPE_C_ATTRIBUTES:
-		msgReq := model.AttributePutMessage{
-			DeviceID: deviceId,
-		}
-		//valueMap = map[string]string{
-		//	*action.ActionParam: *action.ActionValue,
-		//}
-		//valueStr, _ := json.Marshal(valueMap)
-		//msgReq.Value = string(valueStr)
-		msgReq.Value = *action.ActionValue
-		return executeMsg + fmt.Sprintf(" 属性设置:%s", msgReq.Value), GroupApp.AttributeData.AttributePutMessage(ctx, userId, &msgReq, operationType)
-
 	case AUTOMATE_ACTION_PARAM_TYPE_CMD, AUTOMATE_ACTION_PARAM_TYPE_COMMAND, AUTOMATE_ACTION_PARAM_TYPE_C_COMMAND:
 		type commandInfo struct {
 			Method string `json:"method"`
@@ -90,11 +66,12 @@ func AutomateActionDeviceMqttSend(deviceId string, action model.ActionInfo, tena
 			Value:    &info.Params,
 			Identify: info.Method,
 		}
-		//msgReq := model.PutMessageForCommand{
-		//	DeviceID: deviceId,
-		//	Value:    action.ActionValue,
-		//	Identify: *action.ActionParam,
-		//}
+		policyRunID := 0
+		if action.Remark != nil && strings.Contains(*action.Remark, "runID:") { // 内置的格式，暂时先不检查
+			strs := strings.Split(*action.Remark, ":")
+			policyRunID, _ = strconv.Atoi(strs[1])
+		}
+		msgReq.PolicyRunID = policyRunID
 		return executeMsg + fmt.Sprintf(" 命令下发:%s", *msgReq.Value), GroupApp.CommandData.CommandPutMessage(ctx, userId, &msgReq, operationType)
 	default:
 
@@ -148,9 +125,7 @@ func (a *AutomateTelemetryActionScene) AutomateActionRun(action model.ActionInfo
 	if action.ActionTarget == nil {
 		return "场景激活", errors.New("场景id不存在")
 	}
-	// return GroupApp.SceneAutomation.SwitchSceneAutomation(*action.ActionTarget, "Y")
-
-	return "场景激活", GroupApp.ActiveSceneExecute(*action.ActionTarget, a.TenantID)
+	return "场景激活", GroupApp.ActiveSceneExecute(*action.ActionTarget, a.TenantID, *action.Remark)
 }
 
 // 警告 30

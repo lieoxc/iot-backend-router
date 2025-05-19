@@ -106,7 +106,8 @@ func (a *Automate) Execute(deviceInfo *model.Device, fromExt AutomateFromExt) er
 	a.device = deviceInfo
 	a.formExt = fromExt
 	//
-	logrus.Debugf("Automate Run, devName:%v TriggerParamType:%s", deviceInfo.Name, fromExt.TriggerParamType)
+	logrus.Debugf("Automate Run, devName:%s DeviceConfigID:%v TriggerParamType:%s",
+		*deviceInfo.Name, *deviceInfo.DeviceConfigID, fromExt.TriggerParamType)
 	//单类设备t
 	if deviceInfo.DeviceConfigID != nil {
 		deviceConfigId := *deviceInfo.DeviceConfigID
@@ -115,6 +116,7 @@ func (a *Automate) Execute(deviceInfo *model.Device, fromExt AutomateFromExt) er
 			logrus.Error("自动化执行失败", err)
 		}
 	}
+	logrus.Debug("run telExecute without DeviceConfigID")
 	return a.telExecute(deviceInfo.ID, "", fromExt)
 
 }
@@ -224,7 +226,7 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 		if a.CheckSceneAutomationHasClose(v.SceneAutomationId) {
 			continue
 		}
-		logrus.Debugf("查询自动化是否关闭2: info:%#v,", info)
+		logrus.Debugf("判断条件是否成立: info:%#v,", info)
 		//条件判断
 		if !a.AutomateConditionCheck(v.GroupsCondition, info.DeviceId) {
 			continue
@@ -245,6 +247,24 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 				continue
 			}
 			//未执行成功，继续下发 退出防风
+		} else if a.CheckSceneAutomationWindProtection(v.SceneAutomationId) { // 防风策略
+			var runID int
+			var err error
+			// 1. 先获取 policyRunID
+			runID, err = global.REDIS.Get(context.Background(), "policyRunID").Int()
+			if err != nil {
+				if errors.Is(err, redis.Nil) { // 没有这个标记表示之前一直未执行过 防风策略
+					runID = 1 //表示设备第一次执行防风策略
+				} else {
+					logrus.Error("WindProtectionLeave Policy check RunFlag err", err)
+				}
+			}
+			logrus.Debug("now ready run WindProtection Policy,runID:", runID)
+			remarkValue := fmt.Sprintf("runID:%d", runID)
+			// 把policyRunID 保存到 Remark 中，在后续的命令下发中可以解析出来
+			for i := range v.Actions {
+				v.Actions[i].Remark = &remarkValue
+			}
 		}
 		// 场景联动 动作执行
 		err := a.SceneAutomateExecute(v.SceneAutomationId, []string{info.DeviceId}, v.Actions)
@@ -255,9 +275,9 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 			if a.CheckSceneAutomationWindProtection(v.SceneAutomationId) {
 				// policyRunID + 1
 				global.REDIS.Incr(context.Background(), "policyRunID")
-				global.REDIS.Set(context.Background(), "RunFlag", Protection, 0) // key 用不过期
+				global.REDIS.Set(context.Background(), "RunFlag", fmt.Sprintf("%d", Protection), 0) // key 用不过期
 			} else if a.CheckSceneAutomationWindProtectionLeave(v.SceneAutomationId) {
-				global.REDIS.Set(context.Background(), "RunFlag", ProtectionLeaveWithoutAck, 0) // key 用不过期
+				global.REDIS.Set(context.Background(), "RunFlag", fmt.Sprintf("%d", ProtectionLeaveWithoutAck), 0) // key 用不过期
 			}
 
 		}
@@ -280,21 +300,11 @@ func (*Automate) CheckSceneAutomationHasClose(sceneAutomationId string) bool {
 }
 
 func (*Automate) CheckSceneAutomationWindProtection(sceneAutomationId string) bool {
-	ok := dal.CheckWindProtection(sceneAutomationId)
-	//删除缓存
-	if ok {
-		_ = initialize.NewAutomateCache().DeleteCacheBySceneAutomationId(sceneAutomationId)
-	}
-	return ok
+	return dal.CheckWindProtection(sceneAutomationId)
 }
 
 func (*Automate) CheckSceneAutomationWindProtectionLeave(sceneAutomationId string) bool {
-	ok := dal.CheckWindProtectionLeave(sceneAutomationId)
-	//删除缓存
-	if ok {
-		_ = initialize.NewAutomateCache().DeleteCacheBySceneAutomationId(sceneAutomationId)
-	}
-	return ok
+	return dal.CheckWindProtectionLeave(sceneAutomationId)
 }
 
 // SceneAutomateExecute
@@ -315,7 +325,7 @@ func (a *Automate) SceneAutomateExecute(sceneAutomationId string, deviceIds []st
 // @description 场景激活
 // @params info initialize.AutomateExecteParams
 // @return error
-func (a *Automate) ActiveSceneExecute(scene_id, tenantID string) error {
+func (a *Automate) ActiveSceneExecute(scene_id, tenantID, remark string) error {
 
 	actions, err := dal.GetActionInfoListBySceneId([]string{scene_id})
 	if err != nil {
@@ -325,9 +335,12 @@ func (a *Automate) ActiveSceneExecute(scene_id, tenantID string) error {
 		deviceIds      []string
 		deviceConfigId []string
 	)
-	for _, v := range actions {
+	for i, v := range actions {
 		if v.ActionType == model.AUTOMATE_ACTION_TYPE_MULTIPLE && v.ActionTarget != nil {
 			deviceConfigId = append(deviceConfigId, *v.ActionTarget)
+		}
+		if remark != "" {
+			actions[i].Remark = &remark
 		}
 	}
 	if len(deviceConfigId) > 0 {
@@ -387,12 +400,12 @@ func (a *Automate) AutomateConditionCheck(conditions initialize.DTConditions, de
 	}
 	var result bool
 	for _, val := range conditionsByGroupId {
-		ok, contents := a.AutomateConditionCheckWithGroup(val, deviceId)
+		ok, _ := a.AutomateConditionCheckWithGroup(val, deviceId)
 		if ok {
 			result = true
 		}
 		//组条件执行完成装饰
-		a.conditionAfterDecorationRun(ok, val, deviceId, contents)
+		//a.conditionAfterDecorationRun(ok, val, deviceId, contents)
 	}
 	return result
 }
@@ -860,12 +873,6 @@ func (a *Automate) AutomateActionExecute(sceneAutomationId string, deviceIds []s
 		} else {
 			result += fmt.Sprintf("%s 下发成功;", actionMessage)
 		}
-		// 针对特殊策略，添加标记位
-		// switch pType {
-		// case WindProtection:
-		// 	global.REDIS.Incr(context.Background(), policyRunID)
-		// case WindProtectionLeave:
-		// }
 	}
 	logrus.Debug("result:", result)
 	return result, resultErr

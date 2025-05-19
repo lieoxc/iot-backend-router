@@ -345,6 +345,7 @@ func (c *AutomateCache) getCacheByDId(deviceId, deviceConfigId, deviceCacheKey s
 	)
 	stringCmd := c.client.Get(context.Background(), deviceCacheKey)
 	resultInt, err := c.scan(stringCmd, &automateDeviceInfos)
+	logrus.Debugf("Automate run: deviceCacheKey:%v, resultInt:%d", deviceCacheKey, resultInt)
 	if err != nil || resultInt != AUTOMATE_CACHE_RESULT_OK {
 		return automateExecuteParams, resultInt, err
 	}
