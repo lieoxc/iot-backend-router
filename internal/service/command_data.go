@@ -13,16 +13,18 @@ import (
 	"project/pkg/common"
 	"project/pkg/constant"
 	"project/pkg/errcode"
+	global "project/pkg/global"
 	"strconv"
 	"time"
 
 	"github.com/go-basic/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
 type CommandData struct{}
 
-func (*CommandData) GetCommandSetLogsDataListByPage(req model.GetCommandSetLogsListByPageReq) (interface{}, error) {
+func (c *CommandData) GetCommandSetLogsDataListByPage(req model.GetCommandSetLogsListByPageReq) (interface{}, error) {
 	count, data, err := dal.GetCommandSetLogsDataListByPage(req)
 	if err != nil {
 		return nil, errcode.WithData(errcode.CodeDBError, map[string]interface{}{
@@ -36,8 +38,22 @@ func (*CommandData) GetCommandSetLogsDataListByPage(req model.GetCommandSetLogsL
 
 	return dataMap, nil
 }
+func (c *CommandData) handlerPolicyID(response model.MqttResponse) {
+	// 需要和终端约定好， 解除防风策略才需要上报PolicyRunID
+	if response.PolicyRunID != nil {
+		resultFlag, err := global.REDIS.Get(context.Background(), "RunFlag").Int()
+		if err != nil && err != redis.Nil {
+			logrus.Errorf("handlerPolicyID Get RunFlag Failed: %v", err)
+			return
+		}
+		if RunFlag(resultFlag) == ProtectionLeaveWithoutAck {
+			logrus.Debugf("handlerPolicyID Get RunFlag ProtectionLeaveWithoutAck:%v, Now Set It To ProtectionLeaveWithAck:%d", resultFlag, ProtectionLeaveWithAck)
+			global.REDIS.Set(context.Background(), "RunFlag", fmt.Sprintf("%d", ProtectionLeaveWithAck), 0) // key 用不过期
+		}
+	}
 
-func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param *model.PutMessageForCommand, operationType string, fn ...config.MqttDirectResponseFunc) error {
+}
+func (c *CommandData) CommandPutMessage(ctx context.Context, userID string, param *model.PutMessageForCommand, operationType string, fn ...config.MqttDirectResponseFunc) error {
 	// 获取设备信息
 	deviceInfo, err := initialize.GetDeviceCacheById(param.DeviceID)
 	if err != nil {
@@ -142,17 +158,6 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 		})
 	}
 
-	// 执行数据脚本
-	// if deviceInfo.DeviceConfigID != nil && *deviceInfo.DeviceConfigID != "" {
-	// 	if newPayload, err := GroupApp.DataScript.Exec(deviceInfo, "E", payload, topic); err != nil {
-	// 		return errcode.WithData(errcode.CodeSystemError, map[string]interface{}{
-	// 			"error": err.Error(),
-	// 		})
-	// 	} else if newPayload != nil {
-	// 		payload = newPayload
-	// 	}
-	// }
-
 	// 发布消息
 	err = publish.PublishCommandMessage(topic, payload)
 	errorMessage := ""
@@ -191,6 +196,7 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 			if len(fn) > 0 {
 				_ = fn[0](response)
 			}
+			c.handlerPolicyID(response)
 			dal.CommandSetLogsQuery{}.CommandResultUpdate(context.Background(), logInfo.ID, response)
 			if ch, exists := config.MqttDirectResponseFuncMap[messageID]; exists && ch != nil {
 				close(ch)
@@ -198,13 +204,6 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 			}
 		case <-time.After(1 * time.Minute): // 设置超时时间为 1 分钟
 			logrus.Debug("超时，关闭通道")
-			//log.CommandResultUpdate(context.Background(), logInfo.ID, model.MqttResponse{
-			//	Result:  1,
-			//	Errcode: "timeout",
-			//	Message: "设备响应超时",
-			//	Ts:      time.Now().Unix(),
-			//	Method:  param.Identify,
-			//})
 			response := model.MqttResponse{
 				Result:  -1,
 				Message: "设备无响应",

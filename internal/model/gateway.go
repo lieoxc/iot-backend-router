@@ -13,11 +13,12 @@ type EventInfo struct {
 }
 
 type MqttResponse struct {
-	Result  int    `json:"result"`
-	Errcode string `json:"errcode"`
-	Message string `json:"message"`
-	Ts      int64  `json:"ts"`
-	Method  string `json:"method"`
+	Result      int    `json:"result"`
+	Errcode     string `json:"errcode"`
+	Message     string `json:"message"`
+	Ts          *int64 `json:"ts,omitempty"`
+	Method      string `json:"method"`
+	PolicyRunID *int64 `json:"policyRunID,omitempty"`
 }
 
 type GatewayCommandPulish struct {

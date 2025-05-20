@@ -231,6 +231,7 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 		if !a.AutomateConditionCheck(v.GroupsCondition, info.DeviceId) {
 			continue
 		}
+		var runID int
 		//动作执行前判断
 		if a.CheckSceneAutomationWindProtectionLeave(v.SceneAutomationId) { // 解除防风策略
 			// 判断RunFlag是否等于  ProtectionLeaveWithAck
@@ -247,9 +248,7 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 				continue
 			}
 			//未执行成功，继续下发 退出防风
-		} else if a.CheckSceneAutomationWindProtection(v.SceneAutomationId) { // 防风策略
-			var runID int
-			var err error
+
 			// 1. 先获取 policyRunID
 			runID, err = global.REDIS.Get(context.Background(), "policyRunID").Int()
 			if err != nil {
@@ -259,6 +258,32 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 					logrus.Error("WindProtectionLeave Policy check RunFlag err", err)
 				}
 			}
+			logrus.Debug("now ready run WindProtectionLeave Policy,runID:", runID)
+			remarkValue := fmt.Sprintf("runID:%d", runID)
+			// 把policyRunID 保存到 Remark 中，在后续的命令下发中可以解析出来
+			for i := range v.Actions {
+				v.Actions[i].Remark = &remarkValue
+			}
+		} else if a.CheckSceneAutomationWindProtection(v.SceneAutomationId) { // 防风策略
+			var err error
+			// 1. 先获取 policyRunID
+			runID, err = global.REDIS.Get(context.Background(), "policyRunID").Int()
+			if err != nil {
+				if errors.Is(err, redis.Nil) { // 没有这个标记表示之前一直未执行过 防风策略
+					runID = 1 //表示设备第一次执行防风策略
+				} else {
+					logrus.Error("WindProtection Policy check RunFlag err", err)
+				}
+			}
+			// 2. 根据RunFlag的值，判断 policyRunID 是否需要更新
+			resultFlag, err := global.REDIS.Get(context.Background(), "RunFlag").Int()
+			if err != nil {
+				logrus.Debug("WindProtectionLeave Policy check RunFlag err", err)
+			} else if RunFlag(resultFlag) == ProtectionLeaveWithAck { // 上一次 解除防风 已经正确收到响应， 增加policyRunID
+				// policyRunID + 1
+				runID += 1
+			}
+
 			logrus.Debug("now ready run WindProtection Policy,runID:", runID)
 			remarkValue := fmt.Sprintf("runID:%d", runID)
 			// 把policyRunID 保存到 Remark 中，在后续的命令下发中可以解析出来
@@ -273,10 +298,22 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 		if err == nil {
 			// 防风策略的特殊处理
 			if a.CheckSceneAutomationWindProtection(v.SceneAutomationId) {
-				// policyRunID + 1
-				global.REDIS.Incr(context.Background(), "policyRunID")
+				// 1. 开始处理 policyRunID 的更新问题
+				resultFlag, err := global.REDIS.Get(context.Background(), "RunFlag").Int()
+				if err != nil {
+					if errors.Is(err, redis.Nil) { // 没有这个标记表示之前一直未执行过 防风策略，增加policyRunID
+						logrus.Debug("WindProtectionLeave Set policyRunID Value:0")
+						global.REDIS.Set(context.Background(), "policyRunID", fmt.Sprintf("%d", 0), 0) // key 用不过期
+					}
+
+				} else if RunFlag(resultFlag) == ProtectionLeaveWithAck { // 上一次 解除防风 已经正确收到响应， 增加policyRunID
+					// policyRunID + 1
+					logrus.Debug("WindProtectionLeave Set policyRunID Value:", runID)
+					global.REDIS.Set(context.Background(), "policyRunID", fmt.Sprintf("%d", runID), 0) // key 用不过期
+				}
+				// 更新状态标记
 				global.REDIS.Set(context.Background(), "RunFlag", fmt.Sprintf("%d", Protection), 0) // key 用不过期
-			} else if a.CheckSceneAutomationWindProtectionLeave(v.SceneAutomationId) {
+			} else if a.CheckSceneAutomationWindProtectionLeave(v.SceneAutomationId) { // 解除防风策略
 				global.REDIS.Set(context.Background(), "RunFlag", fmt.Sprintf("%d", ProtectionLeaveWithoutAck), 0) // key 用不过期
 			}
 
