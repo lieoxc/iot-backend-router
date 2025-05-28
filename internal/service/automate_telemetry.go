@@ -302,8 +302,8 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 				resultFlag, err := global.REDIS.Get(context.Background(), "RunFlag").Int()
 				if err != nil {
 					if errors.Is(err, redis.Nil) { // 没有这个标记表示之前一直未执行过 防风策略，增加policyRunID
-						logrus.Debug("WindProtectionLeave Set policyRunID Value:0")
-						global.REDIS.Set(context.Background(), "policyRunID", fmt.Sprintf("%d", 0), 0) // key 用不过期
+						logrus.Debug("WindProtectionLeave Set policyRunID Value: 1")
+						global.REDIS.Set(context.Background(), "policyRunID", fmt.Sprintf("%d", 1), 0) // key 用不过期
 					}
 
 				} else if RunFlag(resultFlag) == ProtectionLeaveWithAck { // 上一次 解除防风 已经正确收到响应， 增加policyRunID
