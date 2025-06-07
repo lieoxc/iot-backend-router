@@ -137,7 +137,7 @@ func gpsReadloop(portName string, ctx context.Context) {
 				updateGlobalData(data)
 
 				// 检查是否需要时间同步（每24小时同步一次）
-				if time.Since(lastSyncTime) >= 24*time.Hour {
+				if time.Since(lastSyncTime) >= 12*time.Hour {
 					if err := syncSystemTime(localTime); err != nil {
 						logrus.Errorf("系统时间同步失败: %v", err)
 					} else {
