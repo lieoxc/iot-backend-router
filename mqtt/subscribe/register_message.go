@@ -34,9 +34,17 @@ func RegisterMessages(payload []byte, topic string) {
 		logrus.Error(err.Error())
 		return
 	}
+	if regMsg.Mac == "" || regMsg.CfgID == "" {
+		logrus.Error("mac or  CfgID Can not be null")
+		return
+	}
 	device, err := initialize.GetDeviceCacheById(regMsg.Mac)
+	if err != nil {
+		logrus.Error(err.Error())
+		return
+	}
 	if device != nil && device.ID != "" {
-		logrus.Warnf("deviceID:%s is exist, now update devicename.", regMsg.Mac, regMsg.Name)
+		logrus.Warnf("deviceID:%s is exist, now update devicename:%s.", regMsg.Mac, regMsg.Name)
 		if regMsg.Name != "" {
 			var claims utils.UserClaims
 			claims.TenantID = model.DefaultTenantId
