@@ -87,18 +87,24 @@ func query4GModemInfo(portName string) {
 
 // SendATCommand 发送AT指令到指定串口并获取响应
 // 参数：
-//   portName: 串口设备路径 (如 "/dev/ttyUSB2")
-//   baudRate: 波特率 (如 9600)
-//   command:  要发送的AT指令 (需要包含回车换行符，如 "AT+CSQ\r\n")
-//   timeout:  读取超时时间
+//
+//	portName: 串口设备路径 (如 "/dev/ttyUSB2")
+//	baudRate: 波特率 (如 9600)
+//	command:  要发送的AT指令 (需要包含回车换行符，如 "AT+CSQ\r\n")
+//	timeout:  读取超时时间
+//
 // 返回值：
-//   string: 完整响应内容
-//   error:  错误信息（成功时为nil）
+//
+//	string: 完整响应内容
+//	error:  错误信息（成功时为nil）
 func SendATCommand(portName string, command string) (string, error) {
 	// 配置串口参数
 	port, err := serial.Open(portName, &serial.Mode{
 		BaudRate: 9600,
 	})
+	if err != nil {
+		return "", fmt.Errorf("发送指令失败: %v", err)
+	}
 	defer port.Close() // 确保函数返回前关闭串口
 
 	// 发送AT指令

@@ -152,7 +152,6 @@ func gpsReadloop(portName string, ctx context.Context) {
 					UpdateToRedis(data)
 					count = 0
 				}
-				break
 			}
 		}
 	}

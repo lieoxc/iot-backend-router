@@ -96,17 +96,6 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 		shouldSend = current%3 == 0 // 每3次触发一次 180秒保存一条数据
 	}
 
-	// TODO脚本处理
-	// if device.DeviceConfigID != nil && *device.DeviceConfigID != "" {
-	// 	newtelemetryBody, err := service.GroupApp.DataScript.Exec(device, "A", telemetryBody, topic)
-	// 	if err != nil {
-	// 		logrus.Error(err.Error())
-	// 		return
-	// 	}
-	// 	if newtelemetryBody != nil {
-	// 		telemetryBody = newtelemetryBody
-	// 	}
-	// }
 	//消息转发给第三方
 	err := mqtt_private.ForwardTelemetryMessage(*device.DeviceConfigID, device.ID, telemetryBody)
 	if err != nil {
