@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type DataPolicy struct{}
@@ -48,6 +49,9 @@ func (*DataPolicy) CleanSystemDataByCron() error {
 	if err != nil {
 		return err
 	}
+	// 解析配置文件，检查是否有设置数据保存最大时间
+	days := viper.GetInt("data_clean.time")
+	logrus.Debugf("CleanSystemDataByCron: %d", days)
 
 	now := time.Now()
 	for _, v := range data {
@@ -57,11 +61,14 @@ func (*DataPolicy) CleanSystemDataByCron() error {
 		}
 
 		// 判断今天是否清理过
-		if utils.IsToday(*v.LastCleanupTime) {
-			continue
-		}
+		// if utils.IsToday(*v.LastCleanupTime) {
+		// 	continue
+		// }
 
 		if v.DataType == "1" {
+			if days > 0 {
+				v.RetentionDay = int32(days)
+			}
 			daysAgeInt64 := utils.MillisecondsTimestampDaysAgo(int(v.RetentionDay))
 			daysAgeTime := utils.DaysAgo(int(v.RetentionDay))
 			err := dal.DeleteTelemetrDataByTime(daysAgeInt64)
@@ -81,6 +88,9 @@ func (*DataPolicy) CleanSystemDataByCron() error {
 		} else if v.DataType == "2" {
 			// 清理操作日志（operation_logs）
 			// 清理x天前的内容
+			if days > 0 {
+				v.RetentionDay = int32(days)
+			}
 			daysAge := utils.DaysAgo(int(v.RetentionDay))
 			err := dal.DeleteOperationLogsByTime(daysAge)
 			if err != nil {
