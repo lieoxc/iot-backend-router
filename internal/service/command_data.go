@@ -84,6 +84,11 @@ func (c *CommandData) CommandPutMessage(ctx context.Context, userID string, para
 
 	// 生成消息ID和主题
 	messageID := common.GetMessageID()
+	if deviceInfo.DeviceNumber == "" || *deviceInfo.DeviceConfigID == "" {
+		return errcode.WithData(errcode.CodeSystemError, map[string]interface{}{
+			"error": "DeviceNumber or DeviceConfigID is empty",
+		})
+	}
 	topic := fmt.Sprintf("%s%s/%s/%s", config.MqttConfig.Commands.PublishTopic, *deviceInfo.DeviceConfigID, deviceInfo.DeviceNumber, messageID)
 
 	// 处理非MQTT协议
