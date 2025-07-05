@@ -67,7 +67,7 @@ func MessagesChanHandler(messages <-chan map[string]interface{}) {
 
 // 处理消息
 func TelemetryMessages(payload []byte, topic string) {
-	logrus.Debugf("[MQTT] Topic:%s payload:%s", topic, string(payload))
+	logrus.Debugf("[MQTT] Topic:%s \n payload:%s", topic, string(payload))
 	// 验证消息有效性
 	datas := strings.Split(string(topic), "/")
 	device, err := initialize.GetDeviceCacheById(datas[3])
@@ -88,14 +88,13 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 	var countPtr *int32
 	actual, _ := telemetryCounters.LoadOrStore(device.ID, new(int32))
 	countPtr = actual.(*int32)
-	current := atomic.AddInt32(countPtr, 0)
+	current := atomic.AddInt32(countPtr, 1)
 	shouldSend := false
 	if *device.DeviceConfigID == model.DefaultGatewayCfgID { //气象站
-		shouldSend = current%18 == 0 // 每18次触发一次  180秒保存一条数据
+		shouldSend = (current%18 == 1) // 每18次触发一次  180秒保存一条数据
 	} else {
-		shouldSend = current%3 == 0 // 每3次触发一次 180秒保存一条数据
+		shouldSend = (current%3 == 1) // 每3次触发一次 180秒保存一条数据
 	}
-
 	//消息转发给第三方
 	err := mqtt_private.ForwardTelemetryMessage(*device.DeviceConfigID, device.ID, telemetryBody)
 	if err != nil {
