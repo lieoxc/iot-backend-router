@@ -25,8 +25,6 @@ type RegisterSubSt struct {
 }
 
 func RegisterMessages(payload []byte, topic string) {
-	logrus.Debugln(string(payload))
-
 	//byte转map
 	var regMsg RegisterSubSt
 	err := json.Unmarshal(payload, &regMsg)
@@ -40,8 +38,7 @@ func RegisterMessages(payload []byte, topic string) {
 	}
 	device, err := initialize.GetDeviceCacheById(regMsg.Mac)
 	if err != nil {
-		logrus.Error(err.Error())
-		return
+		logrus.Debug(err.Error())
 	}
 	if device != nil && device.ID != "" {
 		logrus.Warnf("deviceID:%s is exist, now update devicename:%s.", regMsg.Mac, regMsg.Name)

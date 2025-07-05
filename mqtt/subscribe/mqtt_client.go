@@ -176,6 +176,7 @@ func SubscribeRegister() error {
 	// 订阅command消息
 	deviceRegisterHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
+		logrus.Debugf("[MQTT] Topic:%s payload:%s", d.Topic(), string(d.Payload()))
 		RegisterMessages(d.Payload(), d.Topic())
 	}
 	topic := config.MqttConfig.Register.SubscribeTopic
@@ -193,7 +194,7 @@ func SubscribeCustomer() error {
 	// 订阅attribute消息
 	deviceCustomerHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
-		logrus.Debug("customer message:", string(d.Payload()))
+		logrus.Debugf("[MQTT] Topic:%s payload:%s", d.Topic(), string(d.Payload()))
 		var devID, cfgID string
 		topicList := strings.Split(d.Topic(), "/")
 		if len(topicList) < 5 {
@@ -225,7 +226,7 @@ func SubscribeAttribute() error {
 	// 订阅attribute消息
 	deviceAttributeHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
-		logrus.Debug("attribute message:", string(d.Payload()))
+		logrus.Debugf("[MQTT] Topic:%s payload:%s", d.Topic(), string(d.Payload()))
 		_, err := DeviceAttributeReport(d.Payload(), d.Topic())
 		//logrus.Debug("响应设备属性上报", deviceNumber, err)
 		if err != nil {
@@ -247,8 +248,8 @@ func SubscribeCommand() error {
 	// 订阅command消息
 	deviceCommandHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
+		logrus.Debugf("[MQTT] Topic:%s payload:%s", d.Topic(), string(d.Payload()))
 		messageID, err := DeviceCommand(d.Payload(), d.Topic())
-		logrus.Debug("设备命令响应上报", messageID, err)
 		if err != nil || messageID == "" {
 			logrus.Debug("设备命令响应上报失败", messageID, err)
 			logrus.Error(err)
@@ -270,7 +271,7 @@ func SubscribeEvent() error {
 	// 订阅event消息
 	deviceEventHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
-		logrus.Debug("event message:", string(d.Payload()))
+		logrus.Debugf("[MQTT] Topic:%s payload:%s", d.Topic(), string(d.Payload()))
 		deviceNumber, method, err := DeviceEvent(d.Payload(), d.Topic())
 		logrus.Debug("响应设备属性上报", deviceNumber, method, err)
 		if err != nil {
@@ -290,7 +291,7 @@ func SubscribeOtaUpprogress() error {
 	// 订阅ota升级消息
 	otaUpgradeHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
-		logrus.Debug("ota upgrade message:", string(d.Payload()))
+		logrus.Debugf("[MQTT] Topic:%s payload:%s", d.Topic(), string(d.Payload()))
 		OtaUpgrade(d.Payload(), d.Topic())
 	}
 	topic := config.MqttConfig.OTA.SubscribeTopic

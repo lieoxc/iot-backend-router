@@ -67,7 +67,7 @@ func MessagesChanHandler(messages <-chan map[string]interface{}) {
 
 // 处理消息
 func TelemetryMessages(payload []byte, topic string) {
-	logrus.Debugf("telemetry topic:%s \n payload:%s", topic, string(payload))
+	logrus.Debugf("[MQTT] Topic:%s payload:%s", topic, string(payload))
 	// 验证消息有效性
 	datas := strings.Split(string(topic), "/")
 	device, err := initialize.GetDeviceCacheById(datas[3])
