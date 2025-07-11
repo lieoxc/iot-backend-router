@@ -30,7 +30,7 @@ func CronInit() {
 	//InitDeviceStatsCron(c)
 
 	// 间隔30min 执行数据清理
-	c.AddFunc("0 */5 * * * *", func() {
+	c.AddFunc("0 */30 * * * *", func() {
 		logrus.Debug("系统数据清理任务开始：")
 		service.GroupApp.CleanSystemDataByCron()
 	})
