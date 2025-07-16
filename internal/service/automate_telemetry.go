@@ -234,7 +234,7 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 		// 	logrus.Debug("ExecuteRun Limiter Not Allow")
 		// 	continue
 		// }
-		if sceneFlag {
+		if sceneFlag { // 每次数据上报，防风和解除防风 都是二选一的
 			logrus.Debug("WindProtectionLeave Run, Now Break This Policy Check")
 			continue
 		}
@@ -274,18 +274,17 @@ func (a *Automate) ExecuteRun(info initialize.AutomateExecteParams) error {
 		//动作执行前判断
 		if pType == WindProtectionLeave { // 解除防风策略
 			sceneFlag = true
-			if runProtectionLeaveCount >= MaxRunTimes {
+			if runProtectionLeaveCount >= MaxRunTimes { // 解除防风需要运行15次
 				logrus.Debug("WindProtectionLeave Policy Check, Device Report Policy Cmd Run Max 5,Now Do Not Run This Policy")
 				continue
 			}
 			runProtectionLeaveCount++
-			//未执行成功，继续下发 退出防风
-
 			// 1. 先获取 policyRunID
 			runID, err := global.REDIS.Get(context.Background(), "policyRunID").Int()
 			if err != nil {
-				if errors.Is(err, redis.Nil) { // 没有这个标记表示之前一直未执行过 防风策略
-					runID = 1 //表示设备第一次执行防风策略
+				if errors.Is(err, redis.Nil) { // 没有这个标记表示之前一直未执行过策略(先有防风，才会有解除防风)，因此这时候的防风策略也不需要执行
+					logrus.Info("WindProtectionLeave Policy , redis no policyRunID, do not run WindProtectionLeave Policy *****")
+					continue
 				} else {
 					logrus.Error("WindProtectionLeave Policy check RunFlag err", err)
 				}
