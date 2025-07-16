@@ -87,7 +87,7 @@ func LogInIt() {
 		Filename:   logPath, // 日志文件路径
 		MaxSize:    20,      // 每个日志文件的最大大小，单位为MB
 		MaxBackups: 5,       // 保留旧日志文件的最大数量
-		MaxAge:     30,      // 保留旧日志文件的最大天数
+		MaxAge:     3,       // 保留旧日志文件的最大天数
 		Compress:   true,    // 是否压缩旧日志文件
 	})
 	logrus.Debug("Logrus设置完成...")
