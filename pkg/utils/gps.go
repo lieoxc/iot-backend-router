@@ -113,7 +113,7 @@ func gpsReadloop(portName string, ctx context.Context) {
 	reader := bufio.NewReader(port)
 	count := 0
 	lastSyncTime := time.Now()
-
+	firstNtp := false // GPS定位成功后，进行一次对时
 	for {
 		select {
 		case <-ctx.Done():
@@ -137,7 +137,8 @@ func gpsReadloop(portName string, ctx context.Context) {
 				updateGlobalData(data)
 
 				// 检查是否需要时间同步（每24小时同步一次）
-				if time.Since(lastSyncTime) >= 12*time.Hour {
+				if time.Since(lastSyncTime) >= 12*time.Hour || !firstNtp {
+					firstNtp = true
 					if err := syncSystemTime(localTime); err != nil {
 						logrus.Errorf("系统时间同步失败: %v", err)
 					} else {
