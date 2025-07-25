@@ -7,7 +7,7 @@
 1. 下载 Golang 
    
     ```bash
-    git clone https://github.com/ThingsPanel/thingspanel-docker.git
+    https://github.com/lieoxc/iot-backend-router  // 最好frok本项目到自己仓库，然后把链接修改为自己仓库的链接
     ```
 2. 进入iot-backend-router目录，并编译源码
 
