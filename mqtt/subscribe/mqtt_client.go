@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"project/initialize"
 	config "project/mqtt"
 	"project/mqtt/publish"
 
@@ -26,7 +25,7 @@ func GenTopic(topic string) string {
 func SubscribeInit() error {
 
 	//实例限流客户端
-	initialize.NewAutomateLimiter()
+	//initialize.NewAutomateLimiter()
 	// 创建mqtt客户端
 	subscribeMqttClient()
 	// 创建消息队列
@@ -40,12 +39,6 @@ func SubscribeInit() error {
 func subscribe() error {
 	// 订阅attribute消息
 	err := SubscribeAttribute()
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
-	// 订阅设置设备属性回应
-	err = SubscribeSetAttribute()
 	if err != nil {
 		logrus.Error(err)
 		return err
@@ -71,15 +64,6 @@ func subscribe() error {
 
 	//订阅一些非标准的注册消息
 	err = SubscribeCustomer()
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
-	// 订阅在线离线消息
-	//SubscribeDeviceStatus()
-
-	//网关订阅主题
-	err = GatewaySubscribeTopic()
 	if err != nil {
 		logrus.Error(err)
 		return err
@@ -178,11 +162,8 @@ func SubscribeTelemetry() error {
 	}
 
 	topic := config.MqttConfig.Telemetry.SubscribeTopic
-	//topic = GenTopic(topic)
-	logrus.Info("subscribe topic:", topic)
-
+	logrus.Debug("subscribe topic:", topic)
 	qos := byte(config.MqttConfig.Telemetry.QoS)
-
 	if token := SubscribeMqttClient.Subscribe(topic, qos, deviceTelemetryMessageHandler); token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())
 		return err
@@ -195,11 +176,11 @@ func SubscribeRegister() error {
 	// 订阅command消息
 	deviceRegisterHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
+		logrus.Debugf("[MQTT] \n Topic:%s \n payload:%s", d.Topic(), string(d.Payload()))
 		RegisterMessages(d.Payload(), d.Topic())
 	}
 	topic := config.MqttConfig.Register.SubscribeTopic
-	//topic = GenTopic(topic)
-	logrus.Info("subscribe topic:", topic)
+	logrus.Debug("subscribe topic:", topic)
 	qos := byte(config.MqttConfig.Commands.QoS)
 	if token := SubscribeMqttClient.Subscribe(topic, qos, deviceRegisterHandler); token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())
@@ -213,20 +194,20 @@ func SubscribeCustomer() error {
 	// 订阅attribute消息
 	deviceCustomerHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
-		logrus.Debug("attribute message:", string(d.Payload()))
+		logrus.Debugf("[MQTT]\n Topic:%s \n payload:%s", d.Topic(), string(d.Payload()))
 		var devID, cfgID string
 		topicList := strings.Split(d.Topic(), "/")
-		if len(topicList) < 4 {
+		if len(topicList) < 5 {
 			devID = ""
 		} else {
-			cfgID = topicList[2]
-			devID = topicList[3]
+			cfgID = topicList[3]
+			devID = topicList[4]
 		}
 
 		logrus.Debug("NTP 请求, cfgId:", cfgID, "devID:", devID)
 		if cfgID != "" && devID != "" {
-			// 响应设备属性上报
-			publish.PublishNtpResponseMessage(devID, cfgID, nil)
+			// 响应设备NTP请求
+			publish.PublishNtpResponseMessage(cfgID, devID, nil)
 		}
 	}
 	topic := config.MqttConfig.Customer.SubscribeTopic
@@ -245,38 +226,14 @@ func SubscribeAttribute() error {
 	// 订阅attribute消息
 	deviceAttributeHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
-		logrus.Debug("attribute message:", string(d.Payload()))
-		deviceNumber, err := DeviceAttributeReport(d.Payload(), d.Topic())
-		logrus.Debug("响应设备属性上报", deviceNumber, err)
+		logrus.Debugf("[MQTT]\n Topic:%s \n payload:%s", d.Topic(), string(d.Payload()))
+		_, err := DeviceAttributeReport(d.Payload(), d.Topic())
+		//logrus.Debug("响应设备属性上报", deviceNumber, err)
 		if err != nil {
 			logrus.Error(err)
 		}
-		// if deviceNumber != "" && messageId != "" {
-		// 	// 响应设备属性上报
-		// 	publish.PublishAttributeResponseMessage(deviceNumber, messageId, err)
-		// }
 	}
 	topic := config.MqttConfig.Attributes.SubscribeTopic
-	//topic = GenTopic(topic)
-	logrus.Info("subscribe topic:", topic)
-	qos := byte(config.MqttConfig.Attributes.QoS)
-	if token := SubscribeMqttClient.Subscribe(topic, qos, deviceAttributeHandler); token.Wait() && token.Error() != nil {
-		logrus.Error(token.Error())
-		return token.Error()
-	}
-	return nil
-}
-
-// 路由器设置完属性后，设备上报的响应消息
-func SubscribeSetAttribute() error {
-	// 订阅attribute消息
-	deviceAttributeHandler := func(_ mqtt.Client, d mqtt.Message) {
-		// 处理消息
-		logrus.Debug("attribute message:", string(d.Payload()))
-		DeviceSetAttributeResponse(d.Payload(), d.Topic())
-	}
-	topic := config.MqttConfig.Attributes.SubscribeResponseTopic
-	topic = GenTopic(topic)
 	logrus.Info("subscribe topic:", topic)
 	qos := byte(config.MqttConfig.Attributes.QoS)
 	if token := SubscribeMqttClient.Subscribe(topic, qos, deviceAttributeHandler); token.Wait() && token.Error() != nil {
@@ -291,8 +248,8 @@ func SubscribeCommand() error {
 	// 订阅command消息
 	deviceCommandHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
+		logrus.Debugf("[MQTT]\n Topic:%s \n payload:%s", d.Topic(), string(d.Payload()))
 		messageID, err := DeviceCommand(d.Payload(), d.Topic())
-		logrus.Debug("设备命令响应上报", messageID, err)
 		if err != nil || messageID == "" {
 			logrus.Debug("设备命令响应上报失败", messageID, err)
 			logrus.Error(err)
@@ -314,16 +271,12 @@ func SubscribeEvent() error {
 	// 订阅event消息
 	deviceEventHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
-		logrus.Debug("event message:", string(d.Payload()))
+		logrus.Debugf("[MQTT]\n Topic:%s \n payload:%s", d.Topic(), string(d.Payload()))
 		deviceNumber, method, err := DeviceEvent(d.Payload(), d.Topic())
 		logrus.Debug("响应设备属性上报", deviceNumber, method, err)
 		if err != nil {
 			logrus.Error(err)
 		}
-		// if deviceNumber != "" && messageId != "" {
-		// 	// 响应设备属性上报
-		// 	publish.PublishEventResponseMessage(deviceNumber, messageId, method, err)
-		// }
 	}
 	topic := config.MqttConfig.Events.SubscribeTopic
 	qos := byte(config.MqttConfig.Events.QoS)
@@ -338,7 +291,7 @@ func SubscribeOtaUpprogress() error {
 	// 订阅ota升级消息
 	otaUpgradeHandler := func(_ mqtt.Client, d mqtt.Message) {
 		// 处理消息
-		logrus.Debug("ota upgrade message:", string(d.Payload()))
+		logrus.Debugf("[MQTT]\n Topic:%s \n payload:%s", d.Topic(), string(d.Payload()))
 		OtaUpgrade(d.Payload(), d.Topic())
 	}
 	topic := config.MqttConfig.OTA.SubscribeTopic

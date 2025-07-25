@@ -2,6 +2,7 @@ package dal
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -96,7 +97,7 @@ func GetParentDeviceBySubDeviceID(subDeviceID string) (info *model.Device, err e
 
 func GetDeviceByID(id string) (*model.Device, error) {
 	device, err := query.Device.Where(query.Device.ID.Eq(id)).First()
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		logrus.Error(err)
 	} else if device == nil {
 		return nil, fmt.Errorf("device not found")

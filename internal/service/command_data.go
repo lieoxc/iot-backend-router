@@ -13,16 +13,18 @@ import (
 	"project/pkg/common"
 	"project/pkg/constant"
 	"project/pkg/errcode"
+	global "project/pkg/global"
 	"strconv"
 	"time"
 
 	"github.com/go-basic/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
 type CommandData struct{}
 
-func (*CommandData) GetCommandSetLogsDataListByPage(req model.GetCommandSetLogsListByPageReq) (interface{}, error) {
+func (c *CommandData) GetCommandSetLogsDataListByPage(req model.GetCommandSetLogsListByPageReq) (interface{}, error) {
 	count, data, err := dal.GetCommandSetLogsDataListByPage(req)
 	if err != nil {
 		return nil, errcode.WithData(errcode.CodeDBError, map[string]interface{}{
@@ -36,8 +38,22 @@ func (*CommandData) GetCommandSetLogsDataListByPage(req model.GetCommandSetLogsL
 
 	return dataMap, nil
 }
+func (c *CommandData) handlerPolicyID(response model.MqttResponse) {
+	// 需要和终端约定好， 解除防风策略才需要上报PolicyRunID
+	if response.PolicyRunID != nil {
+		resultFlag, err := global.REDIS.Get(context.Background(), "RunFlag").Int()
+		if err != nil && err != redis.Nil {
+			logrus.Errorf("handlerPolicyID Get RunFlag Failed: %v", err)
+			return
+		}
+		if RunFlag(resultFlag) == ProtectionLeaveWithoutAck {
+			logrus.Debugf("handlerPolicyID Get RunFlag ProtectionLeaveWithoutAck:%v, Now Set It To ProtectionLeaveWithAck:%d", resultFlag, ProtectionLeaveWithAck)
+			global.REDIS.Set(context.Background(), "RunFlag", fmt.Sprintf("%d", ProtectionLeaveWithAck), 0) // key 用不过期
+		}
+	}
 
-func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param *model.PutMessageForCommand, operationType string, fn ...config.MqttDirectResponseFunc) error {
+}
+func (c *CommandData) CommandPutMessage(ctx context.Context, userID string, param *model.PutMessageForCommand, operationType string, fn ...config.MqttDirectResponseFunc) error {
 	// 获取设备信息
 	deviceInfo, err := initialize.GetDeviceCacheById(param.DeviceID)
 	if err != nil {
@@ -68,6 +84,11 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 
 	// 生成消息ID和主题
 	messageID := common.GetMessageID()
+	if deviceInfo.DeviceNumber == "" || *deviceInfo.DeviceConfigID == "" {
+		return errcode.WithData(errcode.CodeSystemError, map[string]interface{}{
+			"error": "DeviceNumber or DeviceConfigID is empty",
+		})
+	}
 	topic := fmt.Sprintf("%s%s/%s/%s", config.MqttConfig.Commands.PublishTopic, *deviceInfo.DeviceConfigID, deviceInfo.DeviceNumber, messageID)
 
 	// 处理非MQTT协议
@@ -96,6 +117,9 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 			})
 		}
 		payloadMap["params"] = params
+		if param.PolicyRunID > 0 { // 增加一个PolicyRunID字段
+			payloadMap["policyRunID"] = param.PolicyRunID
+		}
 	}
 
 	// 处理网关和子设备
@@ -139,17 +163,6 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 		})
 	}
 
-	// 执行数据脚本
-	if deviceInfo.DeviceConfigID != nil && *deviceInfo.DeviceConfigID != "" {
-		if newPayload, err := GroupApp.DataScript.Exec(deviceInfo, "E", payload, topic); err != nil {
-			return errcode.WithData(errcode.CodeSystemError, map[string]interface{}{
-				"error": err.Error(),
-			})
-		} else if newPayload != nil {
-			payload = newPayload
-		}
-	}
-
 	// 发布消息
 	err = publish.PublishCommandMessage(topic, payload)
 	errorMessage := ""
@@ -184,30 +197,85 @@ func (*CommandData) CommandPutMessage(ctx context.Context, userID string, param 
 	go func() {
 		select {
 		case response := <-config.MqttDirectResponseFuncMap[messageID]:
-			fmt.Println("接收到数据:", response)
+			logrus.Debug("接收到数据:", response)
 			if len(fn) > 0 {
 				_ = fn[0](response)
 			}
+			c.handlerPolicyID(response)
 			dal.CommandSetLogsQuery{}.CommandResultUpdate(context.Background(), logInfo.ID, response)
-			close(config.MqttDirectResponseFuncMap[messageID])
-			delete(config.MqttDirectResponseFuncMap, messageID)
-		case <-time.After(6 * time.Minute): // 设置超时时间为 3 分钟
-			fmt.Println("超时，关闭通道")
-			//log.CommandResultUpdate(context.Background(), logInfo.ID, model.MqttResponse{
-			//	Result:  1,
-			//	Errcode: "timeout",
-			//	Message: "设备响应超时",
-			//	Ts:      time.Now().Unix(),
-			//	Method:  param.Identify,
-			//})
-			close(config.MqttDirectResponseFuncMap[messageID])
-			delete(config.MqttDirectResponseFuncMap, messageID)
+			if ch, exists := config.MqttDirectResponseFuncMap[messageID]; exists && ch != nil {
+				close(ch)
+				delete(config.MqttDirectResponseFuncMap, messageID)
+			}
+		case <-time.After(1 * time.Minute): // 设置超时时间为 1 分钟
+			logrus.Debug("超时，关闭通道")
+			response := model.MqttResponse{
+				Result:  -1,
+				Message: "设备无响应",
+			}
+			dal.CommandSetLogsQuery{}.CommandResultTimeout(context.Background(), logInfo.ID, response)
+			if ch, exists := config.MqttDirectResponseFuncMap[messageID]; exists && ch != nil {
+				close(ch)
+				delete(config.MqttDirectResponseFuncMap, messageID)
+			}
 
 			return
 		}
 	}()
 
 	return err
+}
+
+func (*CommandData) GetCommonListByCfgID(ctx context.Context, id string) ([]model.GetCommandListRes, error) {
+	var (
+		list = make([]model.GetCommandListRes, 0)
+	)
+	deviceConfigID := &id
+	if deviceConfigID == nil || common.CheckEmpty(*deviceConfigID) {
+		logrus.Debug("device.device_config_id is empty")
+		return list, nil
+	}
+
+	deviceConfigsInfo, err := dal.DeviceConfigQuery{}.First(ctx, query.DeviceConfig.ID.Eq(*deviceConfigID))
+	if err != nil {
+		logrus.Debug(ctx, "[GetCommonList]device_configs failed:", err)
+		return list, errcode.WithData(errcode.CodeDBError, map[string]interface{}{
+			"sql_error": err.Error(),
+		})
+	}
+
+	if deviceConfigsInfo.DeviceTemplateID == nil || common.CheckEmpty(*deviceConfigsInfo.DeviceTemplateID) {
+		logrus.Debug("device_configs.device_template_id is empty")
+		return list, errcode.WithData(errcode.CodeSystemError, map[string]interface{}{
+			"error": "device_configs.device_template_id is empty",
+		})
+	}
+
+	commandList, err := dal.DeviceModelCommandsQuery{}.Find(ctx, query.DeviceModelCommand.DeviceTemplateID.Eq(*deviceConfigsInfo.DeviceTemplateID))
+	if err != nil {
+		logrus.Error(ctx, "[GetCommonList]device_model_command failed:", err)
+		return list, errcode.WithData(errcode.CodeDBError, map[string]interface{}{
+			"sql_error": err.Error(),
+		})
+	}
+
+	for _, info := range commandList {
+		commandRes := model.GetCommandListRes{
+			Identifier: info.DataIdentifier,
+		}
+		if info.DataName != nil {
+			commandRes.Name = *info.DataName
+		}
+		if info.Param != nil {
+			commandRes.Params = *info.Param
+		}
+		if info.Description != nil {
+			commandRes.Description = *info.Description
+		}
+		list = append(list, commandRes)
+	}
+
+	return list, err
 }
 
 func (*CommandData) GetCommonList(ctx context.Context, id string) ([]model.GetCommandListRes, error) {

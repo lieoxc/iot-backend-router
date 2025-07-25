@@ -75,7 +75,7 @@ func (*Scene) GetSceneListByPage(req model.GetSceneListByPageReq, claims *utils.
 
 // TODO
 func (*Scene) ActiveScene(scene_id, _, tenantID string) error {
-	err := GroupApp.ActiveSceneExecute(scene_id, tenantID)
+	err := GroupApp.ActiveSceneExecute(scene_id, tenantID, "")
 	if err != nil {
 		return err
 	}

@@ -74,20 +74,6 @@ func (*ServicePluginApi) Delete(c *gin.Context) {
 	c.Set("data", map[string]interface{}{})
 }
 
-// /api/v1/plugin/heartbeat
-func (*ServicePluginApi) Heartbeat(c *gin.Context) {
-	var req model.HeartbeatReq
-	if !BindAndValidate(c, &req) {
-		return
-	}
-	err := service.GroupApp.ServicePlugin.Heartbeat(&req)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	c.Set("data", map[string]interface{}{})
-}
-
 // GetServiceSelect
 // /api/v1/service/plugin/select GET
 func (*ServicePluginApi) HandleServiceSelect(c *gin.Context) {

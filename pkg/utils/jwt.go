@@ -47,6 +47,5 @@ func (j *JWT) ParseToken(token string) (*UserClaims, error) {
 	if claims, ok := tokenClaims.Claims.(*UserClaims); ok && tokenClaims.Valid {
 		return claims, nil
 	}
-	logrus.Error(err.Error())
 	return nil, err
 }

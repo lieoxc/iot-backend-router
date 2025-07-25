@@ -9,12 +9,15 @@ import (
 	"os/signal"
 
 	"project/initialize"
+	"project/initialize/croninit"
 	"project/internal/app"
+	"project/internal/private_register"
 	"project/internal/query"
 	"project/mqtt"
 	"project/mqtt/device"
 	"project/mqtt/publish"
 	"project/mqtt/subscribe"
+	"project/mqtt_private"
 	"project/pkg/utils"
 	"time"
 
@@ -58,8 +61,8 @@ func init() {
 	publish.PublishInit()
 
 	utils.GPSInit()
-	//定时任务
-	//croninit.CronInit()
+	//定时清理遥测数据
+	croninit.CronInit()
 }
 
 // @title           ThingsPanel API
@@ -78,12 +81,17 @@ func main() {
 		logrus.Fatalf("Failed to start services: %v", err)
 	}
 	defer manager.Stop()
-	// gin.SetMode(gin.ReleaseMode)
 
 	// TODO: 替换gin默认日志，默认日志不支持日志级别设置
 	host, port := loadConfig()
 	router := router.RouterInit(ConfigPath)
 	srv := initServer(host, port, router)
+
+	// TODO需要先判断内网服务器开关是否开启
+	if mqtt_private.SwitchCheck() {
+		private_register.PrivateRegisterInit()
+		mqtt_private.MqttPrivateInit()
+	}
 
 	// 启动服务
 	go startServer(srv, host, port)
@@ -146,12 +154,8 @@ func successInfo() {
 
 	// 打印启动成功消息
 	logrus.Debug("----------------------------------------")
-	logrus.Debug("        TingsPanel 启动成功!")
+	logrus.Debug("        IOTPanel 启动成功!")
 	logrus.Debug("----------------------------------------")
 	logrus.Debugf("启动时间: %s\n", startTime)
-	logrus.Debug("版本: v1.1.4社区版")
-	logrus.Debug("----------------------------------------")
-	logrus.Debug("欢迎使用 TingsPanel！")
-	logrus.Debug("如需帮助，请访问: http://thingspanel.io")
-	logrus.Debug("----------------------------------------")
+	logrus.Debug("版本: v1.1.5")
 }

@@ -1,4 +1,4 @@
-package mqtt
+package mqtt_private
 
 type Config struct {
 	Broker            string          `json:"broker"`
@@ -6,8 +6,6 @@ type Config struct {
 	Pass              string          `json:"pass"`
 	ChannelBufferSize int             `json:"channel_buffer_size"`
 	WriteWorkers      int             `json:"write_workers"`
-	Register          TopicConfig     `json:"register"`
-	Customer          TopicConfig     `json:"customer"`
 	Telemetry         Telemetry       `json:"telemetry"`
 	Attributes        AttributeConfig `json:"attributes"`
 	Commands          TopicConfig     `json:"commands"`
@@ -16,11 +14,10 @@ type Config struct {
 }
 
 type Telemetry struct {
-	SubscribeTopic        string `json:"subscribe_topic"`
 	PublishTopic          string `json:"publish_topic"`
+	SubscribeTopic        string `json:"subscribe_topic"`
 	GatewaySubscribeTopic string `json:"gateway_subscribe_topic"`
 	GatewayPublishTopic   string `json:"gateway_publish_topic"`
-	ForwardPublishTopic   string `json:"forward_publish_topic"`
 	QoS                   int    `json:"qos"`
 	PoolSize              int    `json:"pool_size"`
 	BatchSize             int    `json:"batch_size"`
@@ -31,27 +28,21 @@ type TopicConfig struct {
 	SubscribeTopic        string `json:"subscribe_topic"`
 	GatewaySubscribeTopic string `json:"gateway_subscribe_topic"`
 	GatewayPublishTopic   string `json:"gateway_publish_topic"`
-	ForwardPublishTopic   string `json:"forward_publish_topic"`
 	QoS                   int    `json:"qos"`
 }
 
 type AttributeConfig struct {
-	SubscribeTopic                string `json:"subscribe_topic"`
-	GatewaySubscribeTopic         string `json:"gateway_subscribe_topic"`
-	PublishResponseTopic          string `json:"publish_response_topic"`
-	GatewayPublishResponseTopic   string `json:"gateway_publish_response_topic"`
-	PublishTopic                  string `json:"publish_topic"`
-	ForwardPublishTopic           string `json:"forward_publish_topic"`
-	GatewayPublishTopic           string `json:"gateway_publish_topic"`
-	SubscribeResponseTopic        string `json:"subscribe_response_topic"`
-	GatewaySubscribeResponseTopic string `json:"gateway_subscribe_response_topic"`
-	PublishGetTopic               string `json:"publish_get_topic"`
-	GatewayPublishGetTopic        string `json:"gateway_publish_get_topic"`
-	QoS                           int    `json:"qos"`
+	PublishTopic          string `json:"publish_topic"`
+	SubscribeTopic        string `json:"subscribe_topic"`
+	GatewaySubscribeTopic string `json:"gateway_subscribe_topic"`
+	GatewayPublishTopic   string `json:"gateway_publish_topic"`
+	QoS                   int    `json:"qos"`
 }
 
 type OTATopicConfig struct {
-	PublishTopic   string `json:"publish_topic"`
-	SubscribeTopic string `json:"subscribe_topic"`
-	QoS            int    `json:"qos"`
+	PublishTopic          string `json:"publish_topic"`
+	SubscribeTopic        string `json:"subscribe_topic"`
+	GatewaySubscribeTopic string `json:"gateway_subscribe_topic"`
+	GatewayPublishTopic   string `json:"gateway_publish_topic"`
+	QoS                   int    `json:"qos"`
 }

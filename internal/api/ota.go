@@ -18,6 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/howeyc/crc16"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type OTAApi struct{}
@@ -158,7 +159,14 @@ func (*OTAApi) UpdateOTAUpgradeTaskStatus(c *gin.Context) {
 
 // GET /api/v1/ota/download/{filepath}
 func (*OTAApi) DownloadOTAUpgradePackage(c *gin.Context) {
-	filePath := "./files/upgradePackage/" + c.Param("path") + "/" + c.Param("file")
+	var filePath string
+	apiFileHeadPath := viper.GetString("fileStorage.path")
+	if apiFileHeadPath == "" { // 不配置的时候使用本地目录
+		filePath = "./files/upgradePackage/" + c.Param("path") + "/" + c.Param("file")
+
+	} else {
+		filePath = apiFileHeadPath + "upgradePackage/" + c.Param("path") + "/" + c.Param("file")
+	}
 
 	if !utils.FileExist(filePath) {
 		c.Error(errcode.WithData(errcode.CodeParamError, map[string]interface{}{

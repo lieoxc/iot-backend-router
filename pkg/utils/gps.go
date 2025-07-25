@@ -2,80 +2,187 @@ package utils
 
 import (
 	"bufio"
+	"context"
 	"fmt"
-	"log"
+	"os/exec"
+	"project/pkg/global"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"go.bug.st/serial"
 )
 
+// 全局变量定义
+var (
+	currentGPSData GPSData
+	gpsDataMutex   sync.RWMutex
+)
+
 // GPSData 结构体保存解析后的 GPS 信息
 type GPSData struct {
-	LocalTime    time.Time // UTC 时间
+	UtcTime      time.Time // UTC 时间
 	LocalTimeStr string
 	Latitude     float64 // 纬度
 	Longitude    float64 // 经度
 }
 
-// 打开 GPS 功能的函数
-func enableGPS(portName string) error {
-	port, err := serial.Open(portName, &serial.Mode{
-		BaudRate: 9600,
-	})
-	if err != nil {
-		return fmt.Errorf("无法打开串口 %s: %v", portName, err)
-	}
-	defer port.Close()
+// 安全更新全局GPS数据
+func updateGlobalData(data GPSData) {
+	gpsDataMutex.Lock()
+	defer gpsDataMutex.Unlock()
 
-	// 发送开启 GPS 的指令
-	command := "AT+QGPS=1\r\n" // 注意指令中包含换行符
-	_, err = port.Write([]byte(command))
+	currentGPSData = data
+}
+
+// GetCurrentGPSData 安全获取当前GPS数据
+func GetCurrentGPSData() GPSData {
+	gpsDataMutex.RLock()
+	defer gpsDataMutex.RUnlock()
+	return currentGPSData
+}
+
+func UpdateToRedis(data GPSData) {
+	ctx := context.Background()
+	err := global.REDIS.HSet(ctx, "gps_data", "latitude", data.Latitude, "longitude", data.Longitude, "local_time_str", data.LocalTimeStr).Err()
 	if err != nil {
-		return fmt.Errorf("发送开启 GPS 指令失败: %v", err)
+		logrus.Errorf("Redis HSet 失败: %v", err)
+		return
 	}
-	return nil
+
+	// 验证数据是否写入成功
+	exists, err := global.REDIS.Exists(ctx, "gps_data").Result()
+	if err != nil {
+		logrus.Errorf("Redis Exists 检查失败: %v", err)
+		return
+	}
+	if exists == 0 {
+		logrus.Error("Redis 数据写入验证失败: key 不存在")
+		return
+	}
+
+	// 获取当前数据库编号
+	db, err := global.REDIS.ConfigGet(ctx, "databases").Result()
+	if err != nil {
+		logrus.Errorf("获取 Redis 数据库配置失败: %v", err)
+		return
+	}
+	logrus.Infof("当前 Redis 数据库配置: %v", db)
+}
+
+func GetNtpInfo() (GPSData, error) {
+	// 开始读取 GPS 数据
+	data, err := readGPSData()
+	if err != nil {
+		logrus.Errorf("读取 GPS 数据失败: %v", err)
+		return GPSData{}, err
+	}
+	return data, nil
 }
 
 // 读取 GPS 数据的函数
-func readGPSData(portName string) (GPSData, error) {
-	port, err := serial.Open(portName, &serial.Mode{
-		BaudRate: 9600,
-	})
+func readGPSData() (GPSData, error) {
+	return GetCurrentGPSData(), nil
+}
+
+func GPSInit() error {
+	controlPort := "/dev/ttyUSB2" // 用于发送 AT 指令的串口
+	gpsPort := "/dev/ttyUSB1"     // 用于接收 GPS 数据的串口
+
+	logrus.Debugln("Start GPS Init.")
+	if err := enableGPS(controlPort); err != nil {
+		logrus.Errorln("GPS Init Failed.", err)
+		return err
+	}
+	logrus.Debugln("Finsh GPS Init.")
+
+	go gpsReadloop(gpsPort, context.Background())
+	go modemInfoLoop(controlPort, context.Background())
+	return nil
+}
+func gpsReadloop(portName string, ctx context.Context) {
+	port, err := serial.Open(portName, &serial.Mode{BaudRate: 9600})
 	if err != nil {
-		return GPSData{}, fmt.Errorf("无法打开串口 %s: %v", portName, err)
+		logrus.Errorf("无法打开串口 %s: %v", portName, err)
+		return
 	}
 	defer port.Close()
 
 	reader := bufio.NewReader(port)
-	logrus.Debug("开始读取 GPS 数据...")
-	var data GPSData
+	count := 0
+	lastSyncTime := time.Now()
+	firstNtp := false // GPS定位成功后，进行一次对时
 	for {
-		line, err := reader.ReadString('\n') // 读取一行数据
-		if err != nil {
-			logrus.Error("读取串口数据时出错: %v", err)
-			continue
-		}
-
-		line = strings.TrimSpace(line) // 去除换行符
-		if strings.HasPrefix(line, "$") {
-			if strings.HasPrefix(line, "$GPRMC") {
-				data, err = parseGPRMC(line)
-				if err != nil {
-					logrus.Error("解析 GPGGA 消息失败: %v", err)
-					continue
-				}
-				data.LocalTimeStr = data.LocalTime.Format("2006-01-02 15:04:05")
-				logrus.Debugf("UTC时间: %s", data.LocalTimeStr)
-				logrus.Debugf("纬度: %.6f°", data.Latitude)
-				logrus.Debugf("经度: %.6f°", data.Longitude)
+		select {
+		case <-ctx.Done():
+			logrus.Debugln("GPS Readloop Done.")
+			return
+		default:
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				logrus.Errorf("读取串口数据时出错: %v", err)
 				break
+			}
+
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "$GPRMC") {
+				data, err := parseGPRMC(line)
+				if err != nil {
+					break
+				}
+				localTime := data.UtcTime.Add(8 * time.Hour)
+				data.LocalTimeStr = localTime.Format("2006-01-02 15:04:05")
+				updateGlobalData(data)
+
+				// 检查是否需要时间同步（每24小时同步一次）
+				if time.Since(lastSyncTime) >= 12*time.Hour || !firstNtp {
+					firstNtp = true
+					if err := syncSystemTime(localTime); err != nil {
+						logrus.Errorf("系统时间同步失败: %v", err)
+					} else {
+						logrus.Infof("系统时间同步成功: %s", localTime.Format("2006-01-02 15:04:05"))
+						lastSyncTime = time.Now()
+					}
+				}
+
+				// 定期更新到其他模块
+				count++
+				if count%100 == 0 {
+					UpdateToRedis(data)
+					count = 0
+				}
 			}
 		}
 	}
-	return data, nil
+}
+
+// syncSystemTime 同步系统时间
+func syncSystemTime(newTime time.Time) error {
+	// 在 Linux 系统上使用 date 命令设置时间
+	cmd := fmt.Sprintf("date -s \"%s\"", newTime.Format("2006-01-02 15:04:05"))
+	_, err := runTerminalCmd(cmd, false, true)
+	if err != nil {
+		return err
+	}
+
+	// 同步硬件时钟
+	// hwClockCmd := "hwclock --systohc"
+	// _, err = runTerminalCmd(hwClockCmd, false, true)
+	return err
+}
+
+// runTerminalCmd 执行终端命令
+func runTerminalCmd(cmd string, isBackground bool, requireUserApproval bool) (string, error) {
+	ctx := context.Background()
+	execCmd := exec.CommandContext(ctx, "sh", "-c", cmd)
+
+	output, err := execCmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("执行命令失败: %v, 输出: %s", err, string(output))
+	}
+	return string(output), nil
 }
 
 // 解析 GPRMC 消息以获取 UTC 时间和经纬度
@@ -88,11 +195,14 @@ func parseGPRMC(sentence string) (GPSData, error) {
 	// 拆分字段
 	fields := strings.Split(sentence, ",")
 	if len(fields) < 10 {
-		return GPSData{}, fmt.Errorf("GPRMC 消息字段不足: %s", sentence)
+		return GPSData{}, fmt.Errorf("GPRMC fields no finsh")
 	}
 
 	// 提取 UTC 时间（hhmmss.sss）
 	rawTime := fields[1] // 格式: HHMMSS.SS
+	if len(rawTime) < 7 {
+		return GPSData{}, fmt.Errorf("GPS  rawTime no finsh")
+	}
 	hh, mm, ss := rawTime[:2], rawTime[2:4], rawTime[4:6]
 
 	// 提取日期（DDMMYY）
@@ -110,79 +220,59 @@ func parseGPRMC(sentence string) (GPSData, error) {
 	if err != nil {
 		return GPSData{}, fmt.Errorf("无法解析 UTC 时间: %v", err)
 	}
-	// 获取本地时区（可以替换为其他时区，如："Asia/Shanghai"）
-	localLocation, err := time.LoadLocation("Local")
-	if err != nil {
-		log.Fatalf("无法加载本地时区: %v", err)
-	}
-
-	// 将 UTC 时间转换为本地时间
-	localTime := utcTime.In(localLocation)
 
 	// 提取纬度和经度
-	latitude, err := convertToDecimalDegrees(fields[3], fields[4])
+	latitude, err := parseCoordinate(fields[3], fields[4], 2)
 	if err != nil {
 		return GPSData{}, fmt.Errorf("纬度解析失败: %v", err)
 	}
 
-	longitude, err := convertToDecimalDegrees(fields[5], fields[6])
+	longitude, err := parseCoordinate(fields[5], fields[6], 3)
 	if err != nil {
 		return GPSData{}, fmt.Errorf("经度解析失败: %v", err)
 	}
 
 	// 返回封装好的 GPS 数据
 	return GPSData{
-		LocalTime: localTime,
+		UtcTime:   utcTime,
 		Latitude:  latitude,
 		Longitude: longitude,
 	}, nil
 }
-func GPSInit() error {
-	controlPort := "/dev/ttyUSB2" // 用于发送 AT 指令的串口
-	logrus.Debugln("Start GPS Init.")
-	if err := enableGPS(controlPort); err != nil {
-		logrus.Errorln("开启 GPS 功能失败: %v", err)
-		return err
-	}
-	logrus.Debugln("Finsh GPS Init.")
-	return nil
-}
-func GetNtpInfo() (GPSData, error) {
-	// 配置串口名称（注意替换为实际串口）
-	gpsPort := "/dev/ttyUSB1" // 用于接收 GPS 数据的串口
-	// 开始读取 GPS 数据
-	data, err := readGPSData(gpsPort)
-	if err != nil {
-		logrus.Errorln("读取 GPS 数据失败: %v", err)
-		return GPSData{}, nil
-	}
-	return data, nil
-}
 
 // 将 NMEA 格式的经纬度转换为十进制格式
-func convertToDecimalDegrees(value, direction string) (float64, error) {
-	if value == "" || direction == "" {
-		return 0, fmt.Errorf("无效的值或方向: value=%s, direction=%s", value, direction)
+func parseCoordinate(value string, hemisphere string, degLen int) (float64, error) {
+	// 基本格式校验
+	if len(value) < degLen+1 {
+		return 0, fmt.Errorf("invalid coordinate format: %s", value)
 	}
 
-	// 将纬度或经度的 NMEA 格式 (ddmm.mmmm) 转换为十进制格式
-	degrees, err := strconv.ParseFloat(value[:2], 64) // 取前两位作为度数
+	// 分离度数和分钟
+	degStr := value[:degLen]
+	minStr := value[degLen:]
+
+	// 转换为浮点数
+	degrees, err := strconv.ParseFloat(degStr, 32)
 	if err != nil {
-		return 0, fmt.Errorf("无法解析度: %v", err)
+		return 0, fmt.Errorf("invalid degrees: %s", degStr)
 	}
 
-	minutes, err := strconv.ParseFloat(value[2:], 64) // 后面的部分是分
+	minutes, err := strconv.ParseFloat(minStr, 32)
 	if err != nil {
-		return 0, fmt.Errorf("无法解析分: %v", err)
+		return 0, fmt.Errorf("invalid minutes: %s", minStr)
 	}
 
-	// 转换为十进制
-	decimal := degrees + (minutes / 60.0)
+	// 计算最终坐标
+	coord := degrees + minutes/60
 
-	// 根据方向调整符号
-	if direction == "S" || direction == "W" {
-		decimal = -decimal
+	// 处理半球方向
+	switch hemisphere {
+	case "S", "W":
+		coord = -coord
+	case "N", "E":
+	default:
+		return 0, fmt.Errorf("invalid hemisphere: %s", hemisphere)
 	}
 
-	return decimal, nil
+	return float64(coord), nil
 }

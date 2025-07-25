@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"math/big"
 	constant "project/pkg/constant"
-	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -17,14 +17,9 @@ func CheckEmpty(str string) bool {
 }
 
 func GetMessageID() string {
-	// 获取当前Unix时间戳
-	timestamp := time.Now().Unix()
-	// 将时间戳转换为字符串
-	timestampStr := strconv.FormatInt(timestamp, 10)
-	// 截取后七位
-	messageID := timestampStr[len(timestampStr)-7:]
-
-	return messageID
+	// 生成 UUID 并获取最后 8 位
+	id := uuid.New().String()
+	return id[len(id)-8:]
 }
 
 // JsonToString

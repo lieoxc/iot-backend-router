@@ -161,7 +161,12 @@ func PublishNtpResponseMessage(cfgID string, devID string, err error) error {
 	gpsData, err := utils.GetNtpInfo()
 	if err != nil {
 		logrus.Error("GetNtpInfo Failed:", err)
-		return err
+		// 获取不到GPS信息，返回一个默认消息下去
+		gpsData = utils.GPSData{
+			LocalTimeStr: "",
+			Latitude:     0,
+			Longitude:    0,
+		}
 	}
 
 	ntpData.Longitude = float32(gpsData.Longitude)
@@ -228,18 +233,6 @@ func PublishCommandMessage(topic string, payload []byte) error {
 	}
 	logrus.Debug("下发主题:", topic)
 	logrus.Debug("下发命令:", string(payload))
-	return token.Error()
-}
-
-// 转发telemetry消息
-func ForwardTelemetryMessage(deviceId string, payload []byte) error {
-	telemetryTopic := config.MqttConfig.Telemetry.SubscribeTopic + "/" + deviceId
-	qos := byte(config.MqttConfig.Telemetry.QoS)
-	// 发布消息
-	token := mqttClient.Publish(telemetryTopic, qos, false, payload)
-	if token.Wait() && token.Error() != nil {
-		logrus.Error(token.Error())
-	}
 	return token.Error()
 }
 

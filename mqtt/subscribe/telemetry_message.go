@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	initialize "project/initialize"
@@ -11,6 +13,7 @@ import (
 	model "project/internal/model"
 	service "project/internal/service"
 	config "project/mqtt"
+	"project/mqtt_private"
 
 	"github.com/sirupsen/logrus"
 )
@@ -43,37 +46,30 @@ func MessagesChanHandler(messages <-chan map[string]interface{}) {
 			break
 		}
 
-		// 如果tskvList有数据，则写入数据库
-		if len(telemetryList) > 0 {
-			logrus.Info("批量写入遥测数据表的条数:", len(telemetryList))
-			err := dal.CreateTelemetrDataBatch(telemetryList)
-			if err != nil {
-				logrus.Error(err)
-			}
-
-			// 更新当前值表
-			err = dal.UpdateTelemetrDataBatch(telemetryList)
-			if err != nil {
-				logrus.Error(err)
-			}
-
-			// 清空telemetryList
-			telemetryList = []*model.TelemetryData{}
+		// 如果tskvList有数据，则写入数据库; 满了500条才进行写入，避免重启的时候刚好碰到数据库更新
+		logrus.Info("批量写入遥测数据表的条数:", len(telemetryList))
+		err := dal.CreateTelemetrDataBatch(telemetryList)
+		if err != nil {
+			logrus.Error(err)
 		}
+
+		// 更新当前值表
+		err = dal.UpdateTelemetrDataBatch(telemetryList)
+		if err != nil {
+			logrus.Error(err)
+		}
+
+		// 清空telemetryList
+		telemetryList = []*model.TelemetryData{}
+
 	}
 }
 
 // 处理消息
 func TelemetryMessages(payload []byte, topic string) {
-	logrus.Debugln(string(payload))
+	logrus.Debugf("[MQTT]\n Topic:%s \n payload:%s", topic, string(payload))
 	// 验证消息有效性
-	//telemetryPayload, err := verifyPayload(payload)
-	//if err != nil {
-	//	logrus.Error(err.Error(), topic)
-	//	return
-	//}
 	datas := strings.Split(string(topic), "/")
-	logrus.Debugln(datas[2], " mac:", datas[3])
 	device, err := initialize.GetDeviceCacheById(datas[3])
 	if err != nil {
 		logrus.Error(err.Error())
@@ -82,30 +78,35 @@ func TelemetryMessages(payload []byte, topic string) {
 	TelemetryMessagesHandle(device, payload, topic)
 }
 
+// 包级别声明全局计数器
+var (
+	telemetryCounters sync.Map // key: device.ID (string), value: *int32
+)
+
 func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic string) {
-	// TODO脚本处理
-	if device.DeviceConfigID != nil && *device.DeviceConfigID != "" {
-		newtelemetryBody, err := service.GroupApp.DataScript.Exec(device, "A", telemetryBody, topic)
-		if err != nil {
-			logrus.Error(err.Error())
-			return
-		}
-		if newtelemetryBody != nil {
-			telemetryBody = newtelemetryBody
-		}
+	// 处理计数器
+	var countPtr *int32
+	actual, _ := telemetryCounters.LoadOrStore(device.ID, new(int32))
+	countPtr = actual.(*int32)
+	current := atomic.AddInt32(countPtr, 1)
+	shouldSend := false
+	if *device.DeviceConfigID == model.DefaultGatewayCfgID { //气象站
+		shouldSend = (current%18 == 1) // 每18次触发一次  180秒保存一条数据
+	} else {
+		shouldSend = (current%3 == 1) // 每3次触发一次 180秒保存一条数据
 	}
 	//消息转发给第三方
-	// err := publish.ForwardTelemetryMessage(device.ID, telemetryBody)
-	// if err != nil {
-	// 	logrus.Error("telemetry forward error:", err.Error())
-	// }
+	err := mqtt_private.ForwardTelemetryMessage(*device.DeviceConfigID, device.ID, telemetryBody)
+	if err != nil {
+		logrus.Error("telemetry forward error:", err.Error())
+	}
 
 	// 心跳处理
 	go HeartbeatDeal(device)
 
 	//byte转map
 	var reqMap = make(map[string]interface{})
-	err := json.Unmarshal(telemetryBody, &reqMap)
+	err = json.Unmarshal(telemetryBody, &reqMap)
 	if err != nil {
 		logrus.Error(err.Error())
 		return
@@ -113,13 +114,14 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 
 	ts := time.Now().UTC()
 	milliseconds := ts.UnixNano() / int64(time.Millisecond)
-	logrus.Debug(device, ts)
+	//logrus.Debug(device, ts)
 	var (
 		triggerParam  []string
 		triggerValues = make(map[string]interface{})
 	)
+
 	for k, v := range reqMap {
-		logrus.Debug(k, "(", v, ")")
+		//logrus.Debug(k, "(", v, ")")
 		var d model.TelemetryData
 		switch value := v.(type) {
 		case string:
@@ -159,19 +161,22 @@ func TelemetryMessagesHandle(device *model.Device, telemetryBody []byte, topic s
 		triggerParam = append(triggerParam, k)
 		triggerValues[k] = v
 		// ts_kv批量入库
-		TelemetryMessagesChan <- map[string]interface{}{
-			"telemetryData": d,
+		if shouldSend {
+			TelemetryMessagesChan <- map[string]interface{}{
+				"telemetryData": d,
+			}
 		}
 	}
+
 	// go 自动化处理
-	// go func() {
-	// 	err = service.GroupApp.Execute(device, service.AutomateFromExt{
-	// 		TriggerParamType: model.TRIGGER_PARAM_TYPE_TEL,
-	// 		TriggerParam:     triggerParam,
-	// 		TriggerValues:    triggerValues,
-	// 	})
-	// 	if err != nil {
-	// 		logrus.Error("自动化执行失败, err: %w", err)
-	// 	}
-	// }()
+	go func() {
+		err = service.GroupApp.Execute(device, service.AutomateFromExt{
+			TriggerParamType: model.TRIGGER_PARAM_TYPE_TEL,
+			TriggerParam:     triggerParam,
+			TriggerValues:    triggerValues,
+		})
+		if err != nil {
+			logrus.Error("自动化执行失败, err: %w", err)
+		}
+	}()
 }

@@ -14,17 +14,17 @@ log:
   level: debug # 默认info
   # 每个文件保存的最大行数
   maxlines: 10000
-  path:
+  path: /mnt/iot/logs
 jwt:
   key: 1hj5b0sp9
 
 fileStorage:
-  path: 
+  path: /mnt/iot/files/
 web:
   addr: 192.168.6.175:9999
 db:
   psql:
-    host: 192.168.10.1 # 默认localhost
+    host: 127.0.0.1 # 默认localhost
     port: 5432 # 默认5432
     dbname: thingspanel
     username: postgres
@@ -39,14 +39,14 @@ db:
     slow_threshold: 200 # 默认200毫秒
 
   redis:
-    addr: 192.168.10.1:6379 # 默认localhost:6379
+    addr: 127.0.0.1:6379 # 默认localhost:6379
+    # addr: 47.92.253.145:6379 # 默认localhost:6379
     db: 1 # 默认0
     db1: 10 # 默认10，不能是0，用户设备状态管理
     password:
-
 mqtt:
-  access_address: 192.168.10.1:2883
-  broker: 192.168.10.1:2883 # 默认localhost:1883
+  access_address: 127.0.0.1:2883
+  broker: 127.0.0.1:2883 # 默认localhost:1883
   user: root # 默认root
   pass: root # 默认root
   channel_buffer_size: 10000 # 默认10000
@@ -83,6 +83,9 @@ mqtt:
     # 发布设置属性请求：devices/attributes/set/{device_number}/{message_id}
     publish_topic: devices/attributes/set/
 
+    # 订阅设置属性响应：+位置是{message_id} 
+    subscribe_response_topic: devices/attributes/set/response/+
+
     # 发布获取属性请求：devices/attributes/get/{device_number}
     publish_get_topic: devices/attributes/get/
 
@@ -94,7 +97,7 @@ mqtt:
     # 下发消息 devices/command/{cfgID}/{devID}/{message_id}
     publish_topic: devices/command/
     # 订阅命令响应 devices/command/response/{message_id}
-    subscribe_topic: devices/command/response/+/+/+
+    subscribe_topic: devices/command/response/+
     qos: 1
   events:
     # 订阅设备事件 devices/event/{cfgID}/{devID}
@@ -159,6 +162,3 @@ session:
   timeout: 6000
   # 可选：是否在每次请求时重置超时时间
   reset_on_request: false
-# 数据保存时间
-data_clean:
-  time: 30 # 30天， 如果设置 -1 ,则表示使用数据库中的时间，7天

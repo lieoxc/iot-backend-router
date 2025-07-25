@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/go-basic/uuid"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type OTA struct{}
@@ -42,7 +44,12 @@ func (*OTA) CreateOTAUpgradePackage(req *model.CreateOTAUpgradePackageReq, tenan
 	if len(parts) > 1 {
 		result := parts[1]
 		logrus.Debug("result filepath:", result)
-		filepath = "./" + result
+		apiFileHeadPath := viper.GetString("fileStorage.path")
+		if apiFileHeadPath == "" { // 不配置的时候使用本地目录
+			filepath = "./" + result
+		} else {
+			filepath = apiFileHeadPath + result
+		}
 		logrus.Debug("filepath:", filepath)
 	}
 	signature, err := utils.FileSign(filepath, *req.SignatureType)
@@ -291,7 +298,6 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 		return err
 	}
 	otamsg["id"] = randNum
-	otamsg["code"] = "200"
 	var otamsgparams = make(map[string]interface{})
 	otamsgparams["version"] = otapackage.Version
 	otamsgparams["url"] = global.OtaAddress + strings.TrimPrefix(*otapackage.PackageURL, ".")
@@ -312,7 +318,7 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 	} else {
 		// 修改设备升级任务信息
 		//修改设备升级任务信息
-		taskDetail.Status = 1
+		taskDetail.Status = 2
 		desc := "已通知设备"
 		taskDetail.StatusDescription = &desc
 		t := time.Now().UTC()
@@ -325,4 +331,31 @@ func (*OTA) PushOTAUpgradePackage(taskDetail *model.OtaUpgradeTaskDetail) error 
 	}
 
 	return nil
+}
+
+var otaTimeOutDesc = "设备长时间无响应"
+
+func (*OTA) HandlerOtaTaskTimeout() {
+	//1. 获取所有正在运行的升级任务
+	details, err := dal.QueryRunningUpgradeTaskDetail()
+	if err != nil && err != sql.ErrNoRows {
+		logrus.Error("QueryRunningUpgradeTaskDetail failed")
+	}
+	// 获取当前时间
+	now := time.Now().UTC()
+	for _, detail := range details {
+		// 获取设备信息
+		timeDiff := now.Sub(*detail.UpdatedAt)
+		logrus.Debugf("device: %v, id: %v, timeDiff: %v", detail.DeviceID, detail.ID, timeDiff)
+		if timeDiff > 30*time.Minute {
+			// 修改设备升级任务信息
+			detail.Status = 5
+			detail.StatusDescription = &otaTimeOutDesc
+			detail.UpdatedAt = &now
+			_, err := query.OtaUpgradeTaskDetail.Updates(detail)
+			if err != nil {
+				logrus.Error("UpdateOtaUpgradeTaskDetail failed")
+			}
+		}
+	}
 }

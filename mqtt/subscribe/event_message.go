@@ -6,6 +6,7 @@ import (
 	dal "project/internal/dal"
 	"project/internal/model"
 	service "project/internal/service"
+	"project/mqtt_private"
 	"strings"
 	"time"
 
@@ -51,6 +52,13 @@ func DeviceEvent(payload []byte, topic string) (string, string, error) {
 		return device.DeviceNumber, "", err
 	}
 	logrus.Debug("event message:", eventValues)
+
+	//消息转发给第三方
+	err = mqtt_private.ForwardEventsMessage(*device.DeviceConfigID, device.ID, payload)
+	if err != nil {
+		logrus.Error("telemetry forward error:", err.Error())
+	}
+
 	// 处理消息
 	err = deviceEventHandle(device, eventValues, topic)
 	if err != nil {

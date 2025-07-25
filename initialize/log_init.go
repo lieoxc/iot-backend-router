@@ -37,6 +37,9 @@ func (*customFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		dir := filepath.Dir(entry.Caller.File)
 		fileAndLine = fmt.Sprintf("%s/%s:%d", filepath.Base(dir), filepath.Base(entry.Caller.File), entry.Caller.Line)
 	}
+	if customCaller, ok := entry.Data["gorm_caller"]; ok {
+		fileAndLine = customCaller.(string)
+	}
 
 	// 组装格式化字符串
 	msg := fmt.Sprintf("%s [%s] [%s] %s\n",
@@ -51,7 +54,6 @@ func LogInIt() {
 	// 初始化 Logrus,不创建logrus实例，直接使用包级别的函数，这样可以在项目的任何地方使用logrus，目前不考虑多日志模块的情况
 	logrus.SetReportCaller(true)
 	logrus.SetFormatter(&customFormatter{logrus.TextFormatter{
-		ForceColors:   true,
 		FullTimestamp: true,
 	}})
 
@@ -85,7 +87,7 @@ func LogInIt() {
 		Filename:   logPath, // 日志文件路径
 		MaxSize:    20,      // 每个日志文件的最大大小，单位为MB
 		MaxBackups: 5,       // 保留旧日志文件的最大数量
-		MaxAge:     30,      // 保留旧日志文件的最大天数
+		MaxAge:     3,       // 保留旧日志文件的最大天数
 		Compress:   true,    // 是否压缩旧日志文件
 	})
 	logrus.Debug("Logrus设置完成...")

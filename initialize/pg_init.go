@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	global "project/pkg/global"
@@ -51,7 +53,7 @@ func PgInit(cfgPath string) (*gorm.DB, error) {
 	CasbinInit(cfgPath)
 
 	// 检查版本
-	err = CheckVersion(db)
+	err = CheckVersion(db, cfgPath)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -142,15 +144,23 @@ func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (stri
 	if l.LogLevel <= logger.Silent {
 		return
 	}
-
 	elapsed := time.Since(begin)
 	sql, rows := fc()
 
+	// 获取当前调用栈信息（穿透 4 层）
+	pc := make([]uintptr, 1)
+	runtime.Callers(7, pc)
+	frame, _ := runtime.CallersFrames(pc).Next()
+	dir := filepath.Dir(frame.File)
 	logEntry := logrus.WithContext(ctx).WithFields(logrus.Fields{
 		"elapsed": elapsed,
 		"rows":    rows,
+		"gorm_caller": fmt.Sprintf("%s/%s:%d",
+			filepath.Base(dir),
+			filepath.Base(frame.File),
+			frame.Line), // 直接记录 SQL 触发点
 	})
-
+	filepath.Base(frame.File)
 	switch {
 	case err != nil && l.LogLevel >= logger.Error:
 		logEntry.Errorf("SQL: %s, Error: %v", sql, err)
@@ -197,7 +207,7 @@ func PgConnect(config *DbConfig) (*gorm.DB, error) {
 3. 数据版本低于程序版本: 执行sql文件，更新版本号
 */
 // 检查版本，在表sys_version中的version字段
-func CheckVersion(db *gorm.DB) error {
+func CheckVersion(db *gorm.DB, cfgPath string) error {
 	version := global.VERSION
 	versionNumber := global.VERSION_NUMBER // 当前程序版本号
 	var dataVersionNumber int              // 数据库版本号
@@ -244,7 +254,7 @@ func CheckVersion(db *gorm.DB) error {
 		logrus.Println("开始升级...")
 		// sql文件名为：版本编号.sql，执行所大于当前数据版本小于等于程序版本的sql文件
 		for i := dataVersionNumber + 1; i <= global.VERSION_NUMBER; i++ {
-			fileName := fmt.Sprintf("sql/%d.sql", i)
+			fileName := fmt.Sprintf(cfgPath+"/sql/%d.sql", i)
 			// 检查文件是否存在
 			if !utils.FileExist(fileName) {
 				// 回滚

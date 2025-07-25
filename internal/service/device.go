@@ -205,18 +205,7 @@ func (*Device) UpdateDevice(req model.UpdateDeviceReq, _ *utils.UserClaims) (*mo
 			"sql_error": err.Error(),
 		})
 	}
-
-	// device.ID = req.Id
-	// device.Name = req.Name
-
 	t := time.Now().UTC()
-
-	// if req.Voucher != nil && *req.Voucher != "" {
-	// 	device.Voucher = *req.Voucher
-	// }
-	// 不能更新租户id
-	//device.TenantID = claims.TenantID
-	//device.UpdateAt = &t
 	condsMap, err := StructToMapAndVerifyJson(req, "additional_info", "protocol_config")
 	if err != nil {
 		return nil, errcode.WithData(errcode.CodeParamError, map[string]interface{}{
@@ -366,7 +355,14 @@ func (*Device) DeleteDevice(id string, userClaims *utils.UserClaims) error {
 			"sql_error": err.Error(),
 		})
 	}
-
+	// 删除ota升级任务详情
+	err = dal.DeleteOtaUpgradeTaskDetail(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return errcode.WithData(errcode.CodeDBError, map[string]interface{}{
+			"sql_error": err.Error(),
+		})
+	}
 	// 删除设备
 	err = dal.DeleteDeviceWithTx(id, userClaims.TenantID, tx)
 	if err != nil {
@@ -380,10 +376,10 @@ func (*Device) DeleteDevice(id string, userClaims *utils.UserClaims) error {
 	tx.Commit()
 	// 清除设备缓存
 	initialize.DelDeviceCache(id)
-	// 通知协议插件
-	if protocolplugin.DisconnectDeviceByDeviceID(id) != nil {
-		logrus.Error("DisconnectDeviceByDeviceID failed:", err)
-	}
+	// // 通知协议插件
+	// if protocolplugin.DisconnectDeviceByDeviceID(id) != nil {
+	// 	logrus.Error("DisconnectDeviceByDeviceID failed:", err)
+	// }
 
 	return nil
 }

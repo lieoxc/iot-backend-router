@@ -1,6 +1,8 @@
 package subscribe
 
 import (
+	"encoding/json"
+	"project/internal/model"
 	config "project/mqtt"
 	"strings"
 
@@ -10,56 +12,30 @@ import (
 // 接收设备命令的响应消息
 func DeviceCommand(payload []byte, topic string) (string, error) {
 	/*
-		消息规范：topic:devices/command/response/+
-				 +是device_id
+		消息规范：topic:devices/command/response/+/+/+
+				 +是cfgID/devID/msgID
 				 payload是json格式的命令消息
 	*/
 	// 验证消息有效性
 	// TODO处理消息
-	logrus.Debug("command message:", string(payload))
-	var messageId string
-	topicList := strings.Split(topic, "/")
-	if len(topicList) < 4 {
-		messageId = ""
-	} else {
-		messageId = topicList[3]
+	datas := strings.Split(string(topic), "/")
+	if len(datas) != 6 {
+		logrus.Error("commamd response msg topic length error")
+		return "", nil
 	}
-	// 验证消息有效性
-	attributePayload, err := verifyPayload(payload)
-	if err != nil {
-		return "", err
-	}
-	logrus.Debug("command values message:", string(attributePayload.Values))
-	// 验证消息有效性
-	commandResponsePayload, err := verifyCommandResponsePayload(attributePayload.Values)
+
+	cfgID, devID, messageId := datas[3], datas[4], datas[5]
+	logrus.Debugln("cfgID:", cfgID, " mdevID:", devID)
+
+	logrus.Debug("command response message:", string(payload))
+	var responseMsg model.MqttResponse
+	err := json.Unmarshal(payload, &responseMsg)
 	if err != nil {
 		logrus.Error(err.Error())
 		return "", err
 	}
-	logrus.Debug("command response message:", commandResponsePayload)
-
-	//log := dal.CommandSetLogsQuery{}
-	//// 通过消息id检查命令历史一小时内是否存在消息
-	//if m, err := log.FilterOneHourByMessageID(messageId); err != nil || m == nil {
-	//	logrus.Error(err.Error())
-	//	return "", err
-	//}
-	//// 存在消息id,处理消息,入库
-	//logInfo := &model.CommandSetLog{
-	//	MessageID: &messageId,
-	//}
-	//if commandResponsePayload.Result == 0 {
-	//	execFail := "3"
-	//	logInfo.Status = &execFail
-	//} else {
-	//	execSuccess := "4"
-	//	logInfo.Status = &execSuccess
-	//	logInfo.RspDatum = &commandResponsePayload.Errcode
-	//	logInfo.ErrorMessage = &commandResponsePayload.Message
-	//}
-	//err = log.Update(nil, logInfo)
 	if ch, ok := config.MqttDirectResponseFuncMap[messageId]; ok {
-		ch <- *commandResponsePayload
+		ch <- responseMsg
 	}
 	return messageId, err
 }

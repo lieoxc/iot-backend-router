@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 
 	// gin-swagger middleware
 
@@ -24,11 +25,11 @@ func RouterInit(cfgPath string) *gin.Engine {
 	gin.DefaultErrorWriter = logrus.StandardLogger().Out
 	router := gin.Default()
 	// 提供 Vue 编译后的静态文件
-	router.Static("/assets", "./dist/assets") // 将 static 目录中的文件暴露为静态资源
-	router.LoadHTMLFiles("./dist/index.html")
-	router.StaticFile("/favicon.ico", "./dist/favicon.ico")             // ico
-	router.StaticFile("/EasyWasmPlayer.js", "./dist/EasyWasmPlayer.js") // ico
-	router.StaticFile("/libDecoder.wasm ", "./dist/libDecoder.wasm")    // ico
+	router.Static("/assets", cfgPath+"/dist/assets") // 将 static 目录中的文件暴露为静态资源
+	router.LoadHTMLFiles(cfgPath + "/dist/index.html")
+	router.StaticFile("/favicon.ico", cfgPath+"/dist/favicon.ico")             // ico
+	router.StaticFile("/EasyWasmPlayer.js", cfgPath+"/dist/EasyWasmPlayer.js") // ico
+	router.StaticFile("/libDecoder.wasm ", cfgPath+"/dist/libDecoder.wasm")    // ico
 	// 默认路由：返回 index.html
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil) // 返回编译后的 index.html
@@ -40,15 +41,17 @@ func RouterInit(cfgPath string) *gin.Engine {
 			return
 		}
 		// 否则返回 index.html，由前端路由处理
-		c.File("./dist/index.html")
+		c.File(cfgPath + "/dist/index.html")
 	})
 	// 处理文件访问请求
+	apiFileHeadPath := viper.GetString("fileStorage.path")
+	if apiFileHeadPath == "" { // 不配置的时候使用本地目录
+		apiFileHeadPath = "."
+	}
 	router.GET("/files/*filepath", func(c *gin.Context) {
 		filepath := c.Param("filepath")
-		c.File("./files" + filepath)
+		c.File(apiFileHeadPath + "/files" + filepath)
 	})
-
-	//router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.Use(middleware.Cors())
 	// 初始化响应处理器
@@ -70,8 +73,6 @@ func RouterInit(cfgPath string) *gin.Engine {
 		// 无需权限校验
 		v1 := api.Group("v1")
 		{
-			v1.POST("plugin/heartbeat", controllers.Heartbeat)
-			v1.POST("plugin/device/config", controllers.HandleDeviceConfigForProtocolPlugin)
 			v1.POST("plugin/service/access/list", controllers.HandlePluginServiceAccessList)
 			v1.POST("plugin/service/access", controllers.HandlePluginServiceAccess)
 			v1.POST("login", controllers.Login)
@@ -84,13 +85,11 @@ func RouterInit(cfgPath string) *gin.Engine {
 			v1.GET("device/online/status/ws", controllers.TelemetryDataApi.ServeDeviceStatusByWS)
 			// 设备遥测keys（ws）
 			v1.GET("telemetry/datas/current/keys/ws", controllers.TelemetryDataApi.ServeCurrentDataByKey)
-			v1.GET("ota/download/files/upgradePackage/:path/:file", controllers.OTAApi.DownloadOTAUpgradePackage)
+			v1.GET("ota/download/upgradePackage/:path/:file", controllers.OTAApi.DownloadOTAUpgradePackage)
 			// 获取系统时间
 			v1.GET("systime", controllers.SystemApi.HandleSystime)
 			// 查询系统功能设置
 			v1.GET("sys_function", controllers.SysFunctionApi.HandleSysFcuntion)
-			// 租户邮箱注册
-			v1.POST("/tenant/email/register", controllers.UserApi.EmailRegister)
 			// 网关自动注册
 			v1.POST("/device/gateway-register", controllers.DeviceApi.GatewayRegister)
 			// 网关子设备注册

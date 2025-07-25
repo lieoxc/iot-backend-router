@@ -100,7 +100,26 @@ func (CommandSetLogsQuery) CommandResultUpdate(ctx context.Context, logId string
 	}
 
 }
+func (CommandSetLogsQuery) CommandResultTimeout(ctx context.Context, logId string, response model.MqttResponse) {
+	command := query.CommandSetLog
+	valueByte, _ := json.Marshal(response)
+	values := string(valueByte)
+	updates := model.CommandSetLog{
+		RspDatum: &values,
+	}
 
+	status := strconv.Itoa(constant.ResponseSStatusTimeout)
+	updates.Status = &status
+	updates.ErrorMessage = &response.Message
+	//updates["status"] = constant.CommandStatusOk
+
+	//updates["rsp_data"] = string(values)
+	_, err := command.WithContext(ctx).Where(command.ID.Eq(logId)).Updates(updates)
+	if err != nil {
+		logrus.Error("[CommandSetLogsQuery]create failed:", err)
+	}
+
+}
 func (CommandSetLogsQuery) Update(ctx context.Context, info *model.CommandSetLog) error {
 	command := query.CommandSetLog
 
