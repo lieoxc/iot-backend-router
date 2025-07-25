@@ -4,19 +4,20 @@
 * 基于本项目的openwrt插件库：https://github.com/lieoxc/openwrt-package， 建议frok到自己仓库，然后clone到本地
 ## 源码编译（Windows环境下）
 
-1. 下载 Golang 
+1. 下载 Golang ：https://go.dev/doc/install
+2. 下载源码：
    
     ```bash
     https://github.com/lieoxc/iot-backend-router  // 最好frok本项目到自己仓库，然后把链接修改为自己仓库的链接
     ```
-2. 进入iot-backend-router目录，并编译源码
+3. 进入iot-backend-router目录，并编译源码
 
     ```bash
     build.bat
     ```
     执行上述操作后，会在当前目录生成一个iot的二进制执行文件
-3. 文件拷贝
+4. 文件拷贝
   
     把iot二进制文件拷贝到：openwrt-package\iot\bin 目录下，替换原文件
 
-4. 至此已完成设备管理平台后端的编译
+5. 至此已完成设备管理平台后端的编译
