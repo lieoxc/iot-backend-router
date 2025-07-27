@@ -60,11 +60,6 @@ func (*DataPolicy) CleanSystemDataByCron() error {
 			continue
 		}
 
-		// 判断今天是否清理过
-		// if utils.IsToday(*v.LastCleanupTime) {
-		// 	continue
-		// }
-
 		if v.DataType == "1" {
 			if days > 0 {
 				v.RetentionDay = int32(days)
@@ -93,6 +88,11 @@ func (*DataPolicy) CleanSystemDataByCron() error {
 			}
 			daysAge := utils.DaysAgo(int(v.RetentionDay))
 			err := dal.DeleteOperationLogsByTime(daysAge)
+			if err != nil {
+				return err
+			}
+			// 清理场景执行日志（SceneLogs）
+			err = dal.DeleteSceneLogsByTime(daysAge)
 			if err != nil {
 				return err
 			}

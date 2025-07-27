@@ -4,6 +4,7 @@ import (
 	"context"
 	model "project/internal/model"
 	query "project/internal/query"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -47,5 +48,9 @@ func SceneLogInsert(data *model.SceneLog) error {
 	if err != nil {
 		return err
 	}
+	return err
+}
+func DeleteSceneLogsByTime(t time.Time) error {
+	_, err := query.SceneLog.Where(query.SceneLog.ExecutedAt.Lte(t)).Delete()
 	return err
 }
