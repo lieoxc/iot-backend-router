@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"project/internal/dal"
 	model "project/internal/model"
+	"project/mqtt_private"
 
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type HTTPRes struct {
@@ -20,20 +20,17 @@ type HTTPRes struct {
 }
 
 func GatewayRegister(devID string) error {
-	addr := viper.GetString("web.addr")
-	if addr == "" {
-		addr = "localhost:9999"
-		logrus.Println("Using default broker:", addr)
-	}
+	addr := mqtt_private.Webaddr + ":9999"
 	// 构造HTTP GET请求URL
 	url := fmt.Sprintf("http://%s/api/v1/device/gateway-register", addr)
-	logrus.Println("gatewayRegister Request URL:", url)
 
 	// 构造请求数据
 	reqData := model.GatewayRegisterReq{
 		GatewayId: devID, // 将设备 ID 放入请求数据中
 		TenantId:  model.DefaultTenantId,
 		Model:     model.DefaultGatewayCfgName,
+		Name:      mqtt_private.HostName,
+		Version:   "V1.0.0",
 	}
 
 	// 将请求数据编码为 JSON
@@ -42,7 +39,7 @@ func GatewayRegister(devID string) error {
 		logrus.Println("Failed to marshal request data:", err)
 		return err
 	}
-
+	logrus.Println("gatewayRegister Request URL:", url, " data:", string(reqBody))
 	// 发送 HTTP POST 请求
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
@@ -68,14 +65,9 @@ func GatewayRegister(devID string) error {
 	return nil
 }
 func SubDevRegister(regsiterReq model.DeviceRegisterReq) error {
-	addr := viper.GetString("web.addr")
-	if addr == "" {
-		addr = "localhost:9999"
-		logrus.Println("Using default broker:", addr)
-	}
+	addr := mqtt_private.Webaddr + ":9999"
 	// 构造HTTP GET请求URL
 	url := fmt.Sprintf("http://%s/api/v1/device/gateway-sub-register", addr)
-	logrus.Println("sub dev Register Request URL:", url)
 
 	// 将请求数据编码为 JSON
 	reqBody, err := json.Marshal(regsiterReq)
@@ -83,7 +75,7 @@ func SubDevRegister(regsiterReq model.DeviceRegisterReq) error {
 		logrus.Println("Failed to marshal request data:", err)
 		return err
 	}
-
+	logrus.Println("gatewayRegister Request URL:", url, " data:", string(reqBody))
 	// 发送 HTTP POST 请求
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
@@ -149,7 +141,9 @@ func RegisterSubDev(gatewayID string) error {
 	for _, dev := range list {
 		item := model.DeviceSubItem{
 			SubAddr: dev.ID,
-			Model:   model.DefaultESP32CfgName,
+			Model:   dev.DeviceConfigName,
+			Name:    dev.Name,
+			Version: dev.CurrentVersion,
 		}
 		items = append(items, item)
 	}

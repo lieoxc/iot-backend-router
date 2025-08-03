@@ -272,6 +272,8 @@ type GatewayRegisterReq struct {
 	GatewayId string `json:"gateway_id"`
 	TenantId  string `json:"tenant_id"`
 	Model     string `json:"model"`
+	Name      string `json:"name,omitempty"`
+	Version   string `json:"version,omitempty"`
 }
 
 type GatewayRegisterRes struct {
@@ -295,6 +297,8 @@ type DeviceSubItem struct {
 	SubAddr  string `json:"sub_addr"`
 	Model    string `json:"model"`
 	Protocol string `json:"protocol"`
+	Name     string `json:"name,omitempty"`
+	Version  string `json:"version,omitempty"`
 }
 
 type DeviceRegisterRes struct {

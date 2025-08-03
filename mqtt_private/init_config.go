@@ -12,6 +12,8 @@ import (
 
 var PrivateMqttConfig Config
 var gatewayID string //通过初始化函数：GetGatewayID 在程序刚运行的时候获取
+var Webaddr string
+var HostName string
 
 func MqttPrivateInit() error {
 	// 初始化配置

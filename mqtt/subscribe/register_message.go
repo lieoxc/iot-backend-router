@@ -107,6 +107,8 @@ func registerToPrivateGateway(device model.CreateDeviceReq) {
 	item := model.DeviceSubItem{
 		SubAddr: *device.DeviceNumber,
 		Model:   model.DefaultESP32CfgName,
+		Name:    *device.Name,
+		Version: *device.CurrentVersion,
 	}
 	items = append(items, item)
 

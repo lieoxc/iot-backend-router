@@ -120,7 +120,7 @@ func SubscribeOTA() error {
 var uciCmd = map[string]string{
 	// "publicEnabled":  "iot_connect.@service[0].publicEnabled",
 	// "publicPort":     "iot_connect.@service[0].publicPort",
-	// "publicAddr":     "iot_connect.@service[0].publicAddr",
+	"hostName":       "system.@system[0].hostname", // 主机名称，后续写入主机的SN
 	"privateEnabled": "iot_connect.@service[0].privateEnabled",
 	"privatePort":    "iot_connect.@service[0].privatePort",
 	"privateAddr":    "iot_connect.@service[0].privateAddr",
@@ -135,12 +135,15 @@ func SwitchCheck() bool {
 	}
 	privatePort, _ := getIntVaule(uciCmd["privatePort"])
 	privateAddr, _ := getStringVaule(uciCmd["privateAddr"])
+	hostname, _ := getStringVaule(uciCmd["hostName"])
 
 	logrus.Debug("privateEnabled:", privateEnabled)
 	logrus.Debug("privatePort:", privatePort)
-	logrus.Debug("privateAddr:", privateAddr)
-
-	return false
+	logrus.Debug("privateAddr:", privateAddr, " hostname:", hostname)
+	PrivateMqttConfig.Broker = privateAddr + ":" + strconv.Itoa(privatePort)
+	Webaddr = privateAddr
+	HostName = hostname
+	return privateEnabled
 }
 func OScmd(cmdStr string, args ...string) (string, error) {
 	// 要执行的命令
