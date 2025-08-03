@@ -109,6 +109,21 @@ func ForwardAttributesMessage(cfgID, devID string, payload []byte) error {
 	}
 	return token.Error()
 }
+func ForwardCommandRespMessage(cfgID, devID, msgID string, payload []byte) error {
+	if PrivateMqttClient == nil || !PrivateMqttClient.IsConnected() || gatewayID == "" {
+		logrus.Debug("privateMqttClient is not connected")
+		return nil
+	}
+	qos := byte(PrivateMqttConfig.Telemetry.QoS)
+	pubCmdTopic := PrivateMqttConfig.Commands.GatewayPublishTopic + "/" + cfgID + "/" + devID + "/" + msgID
+	logrus.Debug("topic:", pubCmdTopic, "  value:", string(payload))
+
+	token := PrivateMqttClient.Publish(pubCmdTopic, qos, false, payload)
+	if token.Wait() && token.Error() != nil {
+		logrus.Error(token.Error())
+	}
+	return token.Error()
+}
 
 // 上报tevents消息
 func ForwardEventsMessage(cfgID, devID string, payload []byte) error {

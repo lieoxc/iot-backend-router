@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"project/internal/model"
 	config "project/mqtt"
+	"project/mqtt_private"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -34,6 +35,12 @@ func DeviceCommand(payload []byte, topic string) (string, error) {
 		logrus.Error(err.Error())
 		return "", err
 	}
+	//消息转发给第三方
+	err = mqtt_private.ForwardCommandRespMessage(cfgID, devID, messageId, payload)
+	if err != nil {
+		logrus.Error("telemetry forward error:", err.Error())
+	}
+
 	if ch, ok := config.MqttDirectResponseFuncMap[messageId]; ok {
 		ch <- responseMsg
 	}
