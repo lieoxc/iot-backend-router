@@ -65,7 +65,7 @@ func makeGatewayEventPayload(cfgID, devID string, payload []byte) ([]byte, error
 
 // 上报telemetry消息
 func ForwardTelemetryMessage(cfgID, devID string, payload []byte) error {
-	if PrivateMqttClient == nil || PrivateMqttClient.IsConnected() == false || gatewayID != "" {
+	if PrivateMqttClient == nil || !PrivateMqttClient.IsConnected() || gatewayID == "" {
 		logrus.Debug("privateMqttClient is not connected")
 		return nil
 	}
@@ -88,7 +88,7 @@ func ForwardTelemetryMessage(cfgID, devID string, payload []byte) error {
 
 // 上报attributes消息
 func ForwardAttributesMessage(cfgID, devID string, payload []byte) error {
-	if PrivateMqttClient == nil || PrivateMqttClient.IsConnected() == false || gatewayID != "" {
+	if PrivateMqttClient == nil || !PrivateMqttClient.IsConnected() || gatewayID == "" {
 		logrus.Debug("privateMqttClient is not connected")
 		return nil
 	}
@@ -112,7 +112,7 @@ func ForwardAttributesMessage(cfgID, devID string, payload []byte) error {
 
 // 上报tevents消息
 func ForwardEventsMessage(cfgID, devID string, payload []byte) error {
-	if PrivateMqttClient == nil || PrivateMqttClient.IsConnected() == false || gatewayID != "" {
+	if PrivateMqttClient == nil || !PrivateMqttClient.IsConnected() || gatewayID == "" {
 		logrus.Debug("privateMqttClient is not connected")
 		return nil
 	}
@@ -135,7 +135,7 @@ func ForwardEventsMessage(cfgID, devID string, payload []byte) error {
 
 // 上报ota消息
 func ForwardOtaMessage(cfgID, devID string, payload []byte) error {
-	if PrivateMqttClient == nil || PrivateMqttClient.IsConnected() == false || gatewayID != "" {
+	if PrivateMqttClient == nil || !PrivateMqttClient.IsConnected() || gatewayID == "" {
 		logrus.Debug("privateMqttClient is not connected")
 		return nil
 	}

@@ -79,15 +79,15 @@ func subscribe() error {
 func SubscribeCommand() error {
 	// 订阅command消息
 	commandHandler := func(_ mqtt.Client, d mqtt.Message) {
-		logrus.Debug("command message received")
+		logrus.Info("gateway command message received")
 		err := GatewayDeviceCommand(d.Payload(), d.Topic())
 		if err != nil {
 			logrus.Error("private forward comman err:", err)
 		}
 	}
-	// topic: /gateway/command/cfgID/gatewayID/+
+	// topic: gateway/command/cfgID/gatewayID/+
 	topic := PrivateMqttConfig.Commands.GatewaySubscribeTopic + "/" + model.DefaultGatewayCfgID + "/" + gatewayID + "/+"
-	logrus.Debug("mqtt private subscribe topic:", topic)
+	logrus.Info("mqtt private subscribe topic:", topic)
 	qos := byte(PrivateMqttConfig.Commands.QoS)
 	if token := PrivateMqttClient.Subscribe(topic, qos, commandHandler); token.Wait() && token.Error() != nil {
 		logrus.Error(token.Error())

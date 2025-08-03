@@ -140,10 +140,11 @@ func RegisterSubDev(gatewayID string) error {
 	items := make([]model.DeviceSubItem, 0, total)
 	for _, dev := range list {
 		item := model.DeviceSubItem{
-			SubAddr: dev.ID,
-			Model:   dev.DeviceConfigName,
-			Name:    dev.Name,
-			Version: dev.CurrentVersion,
+			SubAddr:  dev.ID,
+			Model:    dev.DeviceConfigName,
+			Name:     dev.Name,
+			Version:  dev.CurrentVersion,
+			Protocol: "",
 		}
 		items = append(items, item)
 	}
